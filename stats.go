@@ -210,9 +210,10 @@ func (s *statsEntry) reset() {
 	s.TotalContentLength = 0
 }
 
+var a int64
+
 func (s *statsEntry) log(responseTime int64, contentLength int64) {
 	s.NumRequests++
-
 	s.logTimeOfRequest()
 	s.logResponseTime(responseTime)
 
