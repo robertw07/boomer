@@ -119,13 +119,13 @@ func getPercentResponseTime(numRequests int64, responseTimes map[int64]int64) in
 
 func getCurrentRps(numRequests int64, numReqsPerSecond map[int64]int64) (currentRps int64) {
 	currentRps = int64(0)
-	var count int64
-	if len(numReqsPerSecond) > 1 {
-		count = int64(len(numReqsPerSecond) - 1)
-	} else {
-		count = int64(len(numReqsPerSecond))
-	}
-	numReqsPerSecondLength := count
+	//var count int64
+	//if len(numReqsPerSecond) > 1 {
+	//	count = int64(len(numReqsPerSecond) - 1)
+	//} else {
+	//	count = int64(len(numReqsPerSecond))
+	//}
+	numReqsPerSecondLength := int64(len(numReqsPerSecond))
 	if numReqsPerSecondLength != 0 {
 		currentRps = numRequests / numReqsPerSecondLength
 	}
@@ -255,7 +255,16 @@ func buildAllStats(output *dataOutput) {
 					aItem.ResponseTimes[key] = aItem.ResponseTimes[key] + value
 				}
 				for key, value := range oItem.NumReqsPerSec {
-					aItem.NumReqsPerSec[key] = value
+					if _, ok := aItem.NumReqsPerSec[key]; ok {
+						aItem.NumReqsPerSec[key] = aItem.NumReqsPerSec[key] + value
+					} else {
+						aItem.NumReqsPerSec[key] = value
+					}
+					//if aItem.NumReqsPerSec[key] != 0 {
+					//	aItem.NumReqsPerSec[key] = aItem.NumReqsPerSec[key] + value
+					//} else {
+					//	aItem.NumReqsPerSec[key] = value
+					//}
 				}
 				for key, value := range oItem.NumFailPerSec {
 					aItem.NumFailPerSec[key] = value

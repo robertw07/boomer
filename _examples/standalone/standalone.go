@@ -85,11 +85,14 @@ func main() {
 		Fn:     foo4,
 	}
 
-	numClients := 30
+	numClients := 100
 	spawnRate := float64(1)
 	globalBoomer = boomer.NewStandaloneBoomer(numClients, spawnRate)
 	globalBoomer.AddOutput(boomer.NewConsoleOutputWithOptions(&boomer.OutputOptions{
 		PercentTime: 95,
 	}))
+	limiter := boomer.NewStableRateLimiter(100, time.Second)
+	globalBoomer.SetRateLimiter(limiter)
+
 	globalBoomer.Run(task1, task2, task3, task4)
 }
