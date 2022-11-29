@@ -248,7 +248,6 @@ func buildAllStats(output *dataOutput) {
 				if oItem.MinResponseTime < aItem.MinResponseTime {
 					aItem.MinResponseTime = oItem.MinResponseTime
 				}
-				aItem.NumFailures = aItem.NumFailures + oItem.NumFailures
 				aItem.TotalResponseTime = aItem.TotalResponseTime + oItem.TotalResponseTime
 				aItem.TotalContentLength = aItem.TotalContentLength + oItem.TotalContentLength
 				aItem.avgContentLength = aItem.TotalContentLength / aItem.NumRequests
@@ -267,9 +266,6 @@ func buildAllStats(output *dataOutput) {
 				aItem.currentRps = getCurrentRps(aItem.NumRequests, aItem.NumReqsPerSec)
 				aItem.currentFailPerSec = getCurrentFailPerSec(aItem.NumFailures, aItem.NumFailPerSec)
 
-				//allStats.TotalRequestCount = allStats.TotalRequestCount + aItem.NumRequests
-				//allStats.TotalFailedCount = allStats.TotalFailedCount + aItem.NumFailures
-				//allStats.TotalRPS = allStats.TotalRPS + oItem.currentRps
 				hasItem = true
 				break
 			}
@@ -278,9 +274,6 @@ func buildAllStats(output *dataOutput) {
 		if !hasItem {
 			allStats.Stats = append(allStats.Stats, oItem)
 		}
-		//
-		//allStats.TotalRequestCount = allStats.TotalRequestCount + oItem.NumRequests
-		//allStats.TotalFailedCount = allStats.TotalFailedCount + oItem.NumFailures
 	}
 
 	if allStats.NumReqsPerSec == nil {
