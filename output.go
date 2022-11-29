@@ -205,7 +205,7 @@ func (o *ConsoleOutput) OnEvent(data map[string]interface{}) {
 	//table.Render()
 	//println()
 
-	table.Append([]string{"Total Data:"})
+	table.Append([]string{"Summary Data:"})
 
 	for _, stat := range allStats.Stats {
 		row := make([]string, 12)
@@ -236,7 +236,6 @@ func buildAllStats(output *dataOutput) {
 	}
 	allStats.UserCount = output.UserCount
 
-	allStats.TotalRPS = 0
 	for _, oItem := range output.Stats {
 		hasItem := false
 		for _, aItem := range allStats.Stats {
@@ -279,26 +278,27 @@ func buildAllStats(output *dataOutput) {
 		if !hasItem {
 			allStats.Stats = append(allStats.Stats, oItem)
 		}
-
-		allStats.TotalRPS = allStats.TotalRPS + oItem.currentRps
-		allStats.TotalRequestCount = allStats.TotalRequestCount + oItem.NumRequests
-		allStats.TotalFailedCount = allStats.TotalFailedCount + oItem.NumFailures
+		//
+		//allStats.TotalRequestCount = allStats.TotalRequestCount + oItem.NumRequests
+		//allStats.TotalFailedCount = allStats.TotalFailedCount + oItem.NumFailures
 	}
 
-	if allStats.TotalRequestCount != 0 {
-		allStats.TotalFailRatio = (float64)(allStats.TotalFailedCount / allStats.TotalRequestCount)
-	}
-
-	//allStats.TotalRPS = output.TotalRPS + allStats.TotalRPS
 	if allStats.NumReqsPerSec == nil {
 		allStats.NumReqsPerSec = map[int64]int64{}
 	}
-	/*	for key, value := range output.NumReqsPerSec {
-			allStats.NumReqsPerSec[key] = allStats.NumReqsPerSec[key] + value
-		}
 
-		allStats.TotalRPS = getCurrentRps(allStats.TotalRequestCount, allStats.NumReqsPerSec)*/
+	allStats.TotalRPS = 0
+	allStats.TotalRequestCount = 0
+	allStats.TotalFailedCount = 0
+	for _, aItem := range allStats.Stats {
+		allStats.TotalRPS = allStats.TotalRPS + aItem.currentRps
+		allStats.TotalRequestCount = allStats.TotalRequestCount + aItem.NumRequests
+		allStats.TotalFailedCount = allStats.TotalFailedCount + aItem.NumFailures
+	}
 
+	if allStats.TotalRequestCount != 0 {
+		allStats.TotalFailRatio = float64(allStats.TotalFailedCount) / float64(allStats.TotalRequestCount)
+	}
 }
 
 func sortOutput(stats []*statsEntryOutput) []*statsEntryOutput {

@@ -27,7 +27,11 @@ func foo2() {
 
 	// Report your test result as a success, if you write it in python, it will looks like this
 	// events.request_success.fire(request_type="http", name="foo", response_time=100, response_length=10)
-	globalBoomer.RecordSuccess("http", "foo2", elapsed.Nanoseconds()/int64(time.Millisecond), int64(10))
+	if n > 40 {
+		globalBoomer.RecordFailure("http", "foo2", elapsed.Nanoseconds()/int64(time.Millisecond), "")
+	} else {
+		globalBoomer.RecordSuccess("http", "foo2", elapsed.Nanoseconds()/int64(time.Millisecond), int64(10))
+	}
 }
 
 func foo3() {
