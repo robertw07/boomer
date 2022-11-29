@@ -10,8 +10,8 @@ import (
 
 func foo1() {
 	start := time.Now()
-	n := rand.Intn(50)
-	time.Sleep(time.Millisecond * time.Duration(n))
+	//n := rand.Intn(50)
+	time.Sleep(time.Millisecond * time.Duration(20))
 	elapsed := time.Since(start)
 
 	// Report your test result as a success, if you write it in python, it will looks like this
@@ -89,10 +89,11 @@ func main() {
 	spawnRate := float64(1)
 	globalBoomer = boomer.NewStandaloneBoomer(numClients, spawnRate)
 	globalBoomer.AddOutput(boomer.NewConsoleOutputWithOptions(&boomer.OutputOptions{
-		PercentTime: 95,
+		PercentTime: 90,
 	}))
 	limiter := boomer.NewStableRateLimiter(100, time.Second)
 	globalBoomer.SetRateLimiter(limiter)
+	globalBoomer.OutputInterval = 8
 
 	globalBoomer.Run(task1, task2, task3, task4)
 }

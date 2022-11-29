@@ -119,6 +119,8 @@ func getPercentResponseTime(numRequests int64, responseTimes map[int64]int64) in
 
 func getCurrentRps(numRequests int64, numReqsPerSecond map[int64]int64) (currentRps int64) {
 	currentRps = int64(0)
+
+	//fix accuracy issue by robert
 	//var count int64
 	//if len(numReqsPerSecond) > 1 {
 	//	count = int64(len(numReqsPerSecond) - 1)
@@ -173,7 +175,7 @@ func (o *ConsoleOutput) OnEvent(data map[string]interface{}) {
 	sortOutput(allStats.Stats)
 
 	currentTime := time.Now()
-	println(fmt.Sprintf("Current time: %s, Users: %d, Total RPS: %d, Total Fail Ratio: %.1f%%",
+	println(fmt.Sprintf("Current Data: %s, Users: %d, Total RPS: %d, Total Fail Ratio: %.1f%%",
 		currentTime.Format("2006/01/02 15:04:05"), output.UserCount, output.TotalRPS, output.TotalFailRatio*100))
 	println(fmt.Sprintf("Summary data: %s, Users: %d, Total RPS: %d, Total Fail Ratio: %.1f%%",
 		currentTime.Format("2006/01/02 15:04:05"), allStats.UserCount, allStats.TotalRPS, allStats.TotalFailRatio*100))
@@ -186,6 +188,7 @@ func (o *ConsoleOutput) OnEvent(data map[string]interface{}) {
 
 	table.SetHeader([]string{"Type", "Name", "# requests", "# fails", "L50", pTitle, "Average", "Min", "Max", "Content Size", "# reqs/sec", "# fails/sec"})
 
+	table.Append([]string{"Current Data:"})
 	for _, stat := range output.Stats {
 		row := make([]string, 12)
 		row[0] = stat.Method
@@ -202,8 +205,6 @@ func (o *ConsoleOutput) OnEvent(data map[string]interface{}) {
 		row[11] = strconv.FormatInt(stat.currentFailPerSec, 10)
 		table.Append(row)
 	}
-	//table.Render()
-	//println()
 
 	table.Append([]string{"Summary Data:"})
 

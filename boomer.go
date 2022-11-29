@@ -42,6 +42,8 @@ type Boomer struct {
 	memoryProfileDuration time.Duration
 
 	outputs []Output
+
+	OutputInterval int
 }
 
 // NewBoomer returns a new Boomer.
@@ -78,6 +80,10 @@ func (b *Boomer) SetMode(mode Mode) {
 	default:
 		log.Println("Invalid mode, ignored!")
 	}
+}
+
+func (b *Boomer) SetOutputInterval(interval int) {
+	b.OutputInterval = interval
 }
 
 // AddOutput accepts outputs which implements the boomer.Output interface.
@@ -121,6 +127,7 @@ func (b *Boomer) Run(tasks ...*Task) {
 		b.slaveRunner.run()
 	case StandaloneMode:
 		b.localRunner = newLocalRunner(tasks, b.rateLimiter, b.spawnCount, b.spawnRate)
+		b.localRunner.SetSlaveReportInterval(b.OutputInterval)
 		for _, o := range b.outputs {
 			b.localRunner.addOutput(o)
 		}

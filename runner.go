@@ -21,9 +21,12 @@ const (
 )
 
 const (
-	slaveReportInterval = 3 * time.Second
-	heartbeatInterval   = 1 * time.Second
+	//slaveReportInterval = 10 * time.Second
+	heartbeatInterval = 1 * time.Second
 )
+
+// add by robert for support the feature of custom output interval
+var slaveReportInterval = 10 * time.Second
 
 type runner struct {
 	state string
@@ -49,6 +52,12 @@ type runner struct {
 	shutdownChan chan bool
 
 	outputs []Output
+}
+
+func (r *runner) SetSlaveReportInterval(interval int) {
+	if interval > 0 {
+		slaveReportInterval = time.Duration(interval) * time.Second
+	}
 }
 
 // safeRun runs fn and recovers from unexpected panics.
