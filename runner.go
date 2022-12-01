@@ -173,6 +173,7 @@ func (r *runner) spawnWorkers0(spawnCount int, quit chan bool, spawnCompleteFunc
 
 func (r *runner) spawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
 	pool, _ := ants.NewPool(spawnCount)
+	//atomic.AddInt32(&r.numClients, 1)
 	for {
 		select {
 		case <-quit:
@@ -180,15 +181,9 @@ func (r *runner) spawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc 
 		case <-r.shutdownChan:
 			return
 		default:
+			r.numClients = int32(pool.Running())
 			pool.Submit(func() {
-				atomic.AddInt32(&r.numClients, 1)
-				//for {
-				//select {
-				//case <-quit:
-				//	return
-				//case <-r.shutdownChan:
-				//	return
-				//default:
+
 				if r.rateLimitEnabled {
 					blocked := r.rateLimiter.Acquire()
 					if !blocked {
@@ -199,8 +194,6 @@ func (r *runner) spawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc 
 					task := r.getTask()
 					r.safeRun(task.Fn)
 				}
-				//}
-				//}
 			})
 		}
 	}
