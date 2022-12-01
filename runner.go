@@ -2,6 +2,7 @@ package boomer
 
 import (
 	"fmt"
+	"github.com/panjf2000/ants/v2"
 	"log"
 	"math/rand"
 	"os"
@@ -129,7 +130,7 @@ func (r *runner) outputOnStop() {
 	wg.Wait()
 }
 
-func (r *runner) spawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
+func (r *runner) spawnWorkers0(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
 	log.Println("Spawning", spawnCount, "clients immediately")
 
 	for i := 1; i <= spawnCount; i++ {
@@ -167,6 +168,41 @@ func (r *runner) spawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc 
 
 	if spawnCompleteFunc != nil {
 		spawnCompleteFunc()
+	}
+}
+
+func (r *runner) spawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
+	pool, _ := ants.NewPool(spawnCount)
+	for {
+		select {
+		case <-quit:
+			return
+		case <-r.shutdownChan:
+			return
+		default:
+			pool.Submit(func() {
+				atomic.AddInt32(&r.numClients, 1)
+				//for {
+				//select {
+				//case <-quit:
+				//	return
+				//case <-r.shutdownChan:
+				//	return
+				//default:
+				if r.rateLimitEnabled {
+					blocked := r.rateLimiter.Acquire()
+					if !blocked {
+						task := r.getTask()
+						r.safeRun(task.Fn)
+					}
+				} else {
+					task := r.getTask()
+					r.safeRun(task.Fn)
+				}
+				//}
+				//}
+			})
+		}
 	}
 }
 

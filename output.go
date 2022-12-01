@@ -253,7 +253,11 @@ func buildAllStats(output *dataOutput) {
 				aItem.TotalContentLength = aItem.TotalContentLength + oItem.TotalContentLength
 				aItem.avgContentLength = aItem.TotalContentLength / aItem.NumRequests
 				for key, value := range oItem.ResponseTimes {
-					aItem.ResponseTimes[key] = aItem.ResponseTimes[key] + value
+					if _, ok := aItem.ResponseTimes[key]; ok {
+						aItem.ResponseTimes[key] = aItem.ResponseTimes[key] + value
+					} else {
+						aItem.ResponseTimes[key] = value
+					}
 				}
 				for key, value := range oItem.NumReqsPerSec {
 					if _, ok := aItem.NumReqsPerSec[key]; ok {
@@ -261,11 +265,6 @@ func buildAllStats(output *dataOutput) {
 					} else {
 						aItem.NumReqsPerSec[key] = value
 					}
-					//if aItem.NumReqsPerSec[key] != 0 {
-					//	aItem.NumReqsPerSec[key] = aItem.NumReqsPerSec[key] + value
-					//} else {
-					//	aItem.NumReqsPerSec[key] = value
-					//}
 				}
 				for key, value := range oItem.NumFailPerSec {
 					aItem.NumFailPerSec[key] = value
