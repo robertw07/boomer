@@ -1,8 +1,12 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/myzhan/boomer"
@@ -56,6 +60,46 @@ func foo4() {
 	globalBoomer.RecordSuccess("http", "foo4", elapsed.Nanoseconds()/int64(time.Millisecond), int64(10))
 }
 
+func foo5() {
+	for true {
+		nr, _ := http.NewRequest("POST", "https://bsc-mainnet.bk.nodereal.cc/v1/f34f62e7c0b343ef9f5bf80031a49cc2",
+			strings.NewReader("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"eth_getStorageAt\",\"params\":[\"0xbA2aE424d960c26247Dd6c32edC70B295c744C43\",\"0x0\",\"0x14da8d9\"]}"))
+		nr.Header.Add("Content-Type", "application/json")
+
+		client := &http.Client{Timeout: 60 * time.Second}
+		sTime := time.Now()
+		_, err := client.Do(nr)
+		eTime := time.Now()
+		duration := eTime.Sub(sTime).Milliseconds()
+		fmt.Println("******", duration, "******", err)
+		time.Sleep(3 * time.Second)
+	}
+}
+
+func foo6() {
+	nr, _ := http.NewRequest("POST", "https://bsc-mainnet.bk.nodereal.cc/v1/f34f62e7c0b343ef9f5bf80031a49cc2",
+		strings.NewReader("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"eth_getStorageAt\",\"params\":[\"0xbA2aE424d960c26247Dd6c32edC70B295c744C43\",\"0x0\",\"0x14da8d9\"]}"))
+	nr.Header.Add("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 60 * time.Second}
+	sTime := time.Now()
+	resp, err := client.Do(nr)
+	eTime := time.Now()
+	duration := eTime.Sub(sTime).Milliseconds()
+	a := rand.Intn(100)
+	if a == 50 {
+		fmt.Println("^^^^^^^^", duration)
+	}
+	if err == nil {
+		bodyByte, _ := ioutil.ReadAll(resp.Body)
+		bodyStr := string(bodyByte)
+		//fmt.Println(bodyStr)
+		globalBoomer.RecordSuccess("http", "Test6", duration, int64(len(bodyStr)))
+	} else {
+		globalBoomer.RecordFailure("http", "Test6", duration, err.Error())
+	}
+}
+
 var globalBoomer *boomer.Boomer
 
 func main() {
@@ -66,34 +110,47 @@ func main() {
 		Weight: 10,
 		Fn:     foo1,
 	}
+	//
+	//task2 := &boomer.Task{
+	//	Name:   "foo2",
+	//	Weight: 10,
+	//	Fn:     foo2,
+	//}
+	//
+	//task3 := &boomer.Task{
+	//	Name:   "foo3",
+	//	Weight: 20,
+	//	Fn:     foo3,
+	//}
+	//
+	//task4 := &boomer.Task{
+	//	Name:   "foo4",
+	//	Weight: 10,
+	//	Fn:     foo4,
+	//}
 
-	task2 := &boomer.Task{
-		Name:   "foo2",
+	//task5 := &boomer.Task{
+	//	Name:   "foo5",
+	//	Weight: 10,
+	//	Fn:     foo5,
+	//}
+	task6 := &boomer.Task{
+		Name:   "foo6",
 		Weight: 10,
-		Fn:     foo2,
+		Fn:     foo6,
 	}
 
-	task3 := &boomer.Task{
-		Name:   "foo3",
-		Weight: 20,
-		Fn:     foo3,
-	}
+	go foo5()
 
-	task4 := &boomer.Task{
-		Name:   "foo3",
-		Weight: 10,
-		Fn:     foo4,
-	}
-
-	numClients := 100
+	numClients := 1000
 	spawnRate := float64(1)
 	globalBoomer = boomer.NewStandaloneBoomer(numClients, spawnRate)
 	globalBoomer.AddOutput(boomer.NewConsoleOutputWithOptions(&boomer.OutputOptions{
 		PercentTime: 90,
 	}))
-	limiter := boomer.NewStableRateLimiter(100, time.Second)
+	limiter := boomer.NewStableRateLimiter(5000, time.Second)
 	globalBoomer.SetRateLimiter(limiter)
 	globalBoomer.OutputInterval = 8
 
-	globalBoomer.Run(task1, task2, task3, task4)
+	globalBoomer.Run(task1, task6)
 }
