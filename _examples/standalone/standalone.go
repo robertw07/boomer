@@ -75,8 +75,11 @@ func foo5() {
 			_, err := client.Do(nr)
 			eTime := time.Now()
 			duration := eTime.Sub(sTime).Milliseconds()
-			fmt.Println("******", duration, "******", err)
-			time.Sleep(3 * time.Second)
+			a := rand.Intn(100)
+			if a == 50 {
+				fmt.Println("******", duration, "******", err)
+			}
+			//time.Sleep(3 * time.Second)
 		})
 	}
 }
