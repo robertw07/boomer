@@ -5,6 +5,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -42,6 +43,7 @@ type StableRateLimiter struct {
 	refillPeriod     time.Duration
 	broadcastChannel chan bool
 	quitChannel      chan bool
+	broadcastChanMux *sync.RWMutex // avoid data race
 }
 
 // NewStableRateLimiter returns a StableRateLimiter.
@@ -51,6 +53,7 @@ func NewStableRateLimiter(threshold int64, refillPeriod time.Duration) (rateLimi
 		currentThreshold: threshold,
 		timerId:          uint64(0),
 		refillPeriod:     refillPeriod,
+		broadcastChanMux: new(sync.RWMutex),
 		broadcastChannel: make(chan bool),
 	}
 	return rateLimiter
@@ -75,7 +78,10 @@ func (limiter *StableRateLimiter) Start() {
 				}
 				atomic.StoreInt64(&limiter.currentThreshold, limiter.threshold)
 				close(limiter.broadcastChannel)
+
+				limiter.broadcastChanMux.Lock()
 				limiter.broadcastChannel = make(chan bool)
+				limiter.broadcastChanMux.Unlock()
 			}
 		}
 	}(timerId)
@@ -87,7 +93,9 @@ func (limiter *StableRateLimiter) Acquire() (blocked bool) {
 	if permit < 0 {
 		blocked = true
 		// block until the bucket is refilled
+		limiter.broadcastChanMux.Lock()
 		<-limiter.broadcastChannel
+		limiter.broadcastChanMux.Unlock()
 	} else {
 		blocked = false
 	}
