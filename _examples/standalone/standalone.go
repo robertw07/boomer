@@ -79,7 +79,6 @@ func foo5() {
 			if a == 50 {
 				fmt.Println("******", duration, "******", err)
 			}
-			//time.Sleep(3 * time.Second)
 		})
 	}
 }
