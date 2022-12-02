@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/panjf2000/ants/v2"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -62,24 +61,26 @@ func foo4() {
 }
 
 func foo5() {
-	pool, _ := ants.NewPool(5000)
+	//pool, _ := ants.NewPool(5000)
 	//atomic.AddInt32(&r.numClients, 1)
-	for true {
-		pool.Submit(func() {
-			nr, _ := http.NewRequest("POST", "https://bsc-mainnet.bk.nodereal.cc/v1/f34f62e7c0b343ef9f5bf80031a49cc2",
-				strings.NewReader("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"eth_getStorageAt\",\"params\":[\"0xbA2aE424d960c26247Dd6c32edC70B295c744C43\",\"0x0\",\"0x14da8d9\"]}"))
-			nr.Header.Add("Content-Type", "application/json")
+	for i := 1; i <= 5000; i++ {
+		go func() {
+			for {
+				nr, _ := http.NewRequest("POST", "https://bsc-mainnet.bk.nodereal.cc/v1/f34f62e7c0b343ef9f5bf80031a49cc2",
+					strings.NewReader("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"eth_getStorageAt\",\"params\":[\"0xbA2aE424d960c26247Dd6c32edC70B295c744C43\",\"0x0\",\"0x14da8d9\"]}"))
+				nr.Header.Add("Content-Type", "application/json")
 
-			client := &http.Client{Timeout: 60 * time.Second}
-			sTime := time.Now()
-			_, err := client.Do(nr)
-			eTime := time.Now()
-			duration := eTime.Sub(sTime).Milliseconds()
-			a := rand.Intn(100)
-			if a == 50 {
-				fmt.Println("******", duration, "******", err)
+				client := &http.Client{Timeout: 60 * time.Second}
+				sTime := time.Now()
+				_, err := client.Do(nr)
+				eTime := time.Now()
+				duration := eTime.Sub(sTime).Milliseconds()
+				a := rand.Intn(100)
+				if a == 50 {
+					fmt.Println("******", duration, "******", err)
+				}
 			}
-		})
+		}()
 	}
 }
 
