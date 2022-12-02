@@ -93,9 +93,9 @@ func (limiter *StableRateLimiter) Acquire() (blocked bool) {
 	if permit < 0 {
 		blocked = true
 		// block until the bucket is refilled
-		limiter.broadcastChanMux.Lock()
+		//limiter.broadcastChanMux.Lock()
 		<-limiter.broadcastChannel
-		limiter.broadcastChanMux.Unlock()
+		//limiter.broadcastChanMux.Unlock()
 	} else {
 		blocked = false
 	}

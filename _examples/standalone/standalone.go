@@ -135,11 +135,11 @@ var globalBoomer *boomer.Boomer
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	task1 := &boomer.Task{
-		Name:   "foo1",
-		Weight: 10,
-		Fn:     foo1,
-	}
+	//task1 := &boomer.Task{
+	//	Name:   "foo1",
+	//	Weight: 10,
+	//	Fn:     foo1,
+	//}
 
 	//task2 := &boomer.Task{
 	//	Name:   "foo2",
@@ -173,15 +173,15 @@ func main() {
 
 	//foo5()
 
-	numClients := 1000
+	numClients := 100
 	spawnRate := float64(1)
 	globalBoomer = boomer.NewStandaloneBoomer(numClients, spawnRate)
 	globalBoomer.AddOutput(boomer.NewConsoleOutputWithOptions(&boomer.OutputOptions{
 		PercentTime: 90,
 	}))
-	limiter := boomer.NewStableRateLimiter(5000, time.Second)
+	limiter := boomer.NewStableRateLimiter(10, time.Second)
 	globalBoomer.SetRateLimiter(limiter)
 	globalBoomer.OutputInterval = 8
 
-	globalBoomer.Run(task1, task6)
+	globalBoomer.Run(task6)
 }

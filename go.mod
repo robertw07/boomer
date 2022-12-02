@@ -17,4 +17,5 @@ require (
 	github.com/ugorji/go/codec v1.2.6
 	github.com/zeromq/goczmq v0.0.0-20190906225145-a7546843a315
 	golang.org/x/sys v0.0.0-20211111213525-f221eed1c01e // indirect
+	go.uber.org/ratelimit v0.2.0
 )
