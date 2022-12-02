@@ -179,8 +179,8 @@ func main() {
 	globalBoomer.AddOutput(boomer.NewConsoleOutputWithOptions(&boomer.OutputOptions{
 		PercentTime: 90,
 	}))
-	//limiter := boomer.NewStableRateLimiter(, time.Second)
-	//globalBoomer.SetRateLimiter(limiter)
+	limiter := boomer.NewStableRateLimiter(5000, time.Second)
+	globalBoomer.SetRateLimiter(limiter)
 	globalBoomer.OutputInterval = 8
 
 	globalBoomer.Run(task1, task6)
