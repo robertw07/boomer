@@ -182,6 +182,9 @@ func (r *runner) spawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc 
 		//	return
 		//default:
 		//	r.numClients = int32(pool.Running())
+		fmt.Println("······")
+		r.getTask().Fn()
+		fmt.Println("······")
 		pool.Submit(func() {
 
 			if r.rateLimitEnabled {
