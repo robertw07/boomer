@@ -88,6 +88,24 @@ func foo5() {
 	wg.Wait()
 }
 
+//func foo7() {
+//	for {
+//		nr, _ := http.NewRequest("POST", "https://bsc-mainnet.bk.nodereal.cc/v1/f34f62e7c0b343ef9f5bf80031a49cc2",
+//			strings.NewReader("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"eth_getStorageAt\",\"params\":[\"0xbA2aE424d960c26247Dd6c32edC70B295c744C43\",\"0x0\",\"0x14da8d9\"]}"))
+//		nr.Header.Add("Content-Type", "application/json")
+//
+//		client := &http.Client{Timeout: 60 * time.Second}
+//		sTime := time.Now()
+//		_, err := client.Do(nr)
+//		eTime := time.Now()
+//		duration := eTime.Sub(sTime).Milliseconds()
+//		a := rand.Intn(100)
+//		if a == 50 {
+//			fmt.Println("******", duration, "******", err)
+//		}
+//	}
+//}
+
 func foo6() {
 	nr, _ := http.NewRequest("POST", "https://bsc-mainnet.bk.nodereal.cc/v1/f34f62e7c0b343ef9f5bf80031a49cc2",
 		strings.NewReader("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"eth_getStorageAt\",\"params\":[\"0xbA2aE424d960c26247Dd6c32edC70B295c744C43\",\"0x0\",\"0x14da8d9\"]}"))
@@ -117,11 +135,11 @@ var globalBoomer *boomer.Boomer
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	//task1 := &boomer.Task{
-	//	Name:   "foo1",
-	//	Weight: 10,
-	//	Fn:     foo1,
-	//}
+	task1 := &boomer.Task{
+		Name:   "foo1",
+		Weight: 10,
+		Fn:     foo1,
+	}
 
 	//task2 := &boomer.Task{
 	//	Name:   "foo2",
@@ -147,23 +165,23 @@ func main() {
 	//	Fn:     foo5,
 	//}
 
-	//task6 := &boomer.Task{
-	//	Name:   "foo6",
-	//	Weight: 10,
-	//	Fn:     foo6,
-	//}
+	task6 := &boomer.Task{
+		Name:   "foo6",
+		Weight: 10,
+		Fn:     foo6,
+	}
 
-	foo5()
+	//foo5()
 
-	//numClients := 1000
-	//spawnRate := float64(1)
-	//globalBoomer = boomer.NewStandaloneBoomer(numClients, spawnRate)
-	//globalBoomer.AddOutput(boomer.NewConsoleOutputWithOptions(&boomer.OutputOptions{
-	//	PercentTime: 90,
-	//}))
-	//limiter := boomer.NewStableRateLimiter(5000, time.Second)
+	numClients := 1000
+	spawnRate := float64(1)
+	globalBoomer = boomer.NewStandaloneBoomer(numClients, spawnRate)
+	globalBoomer.AddOutput(boomer.NewConsoleOutputWithOptions(&boomer.OutputOptions{
+		PercentTime: 90,
+	}))
+	//limiter := boomer.NewStableRateLimiter(, time.Second)
 	//globalBoomer.SetRateLimiter(limiter)
-	//globalBoomer.OutputInterval = 8
-	//
-	//globalBoomer.Run(task1, task6)
+	globalBoomer.OutputInterval = 8
+
+	globalBoomer.Run(task1, task6)
 }
