@@ -173,13 +173,13 @@ func main() {
 
 	//foo5()
 
-	numClients := 100
-	spawnRate := float64(1)
+	numClients := 1000
+	spawnRate := float64(100)
 	globalBoomer = boomer.NewStandaloneBoomer(numClients, spawnRate)
 	globalBoomer.AddOutput(boomer.NewConsoleOutputWithOptions(&boomer.OutputOptions{
 		PercentTime: 90,
 	}))
-	limiter := boomer.NewStableRateLimiter(10, time.Second)
+	limiter := boomer.NewStableRateLimiter(5000, time.Second)
 	globalBoomer.SetRateLimiter(limiter)
 	globalBoomer.OutputInterval = 8
 
