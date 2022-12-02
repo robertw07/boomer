@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/myzhan/boomer"
@@ -63,6 +64,8 @@ func foo4() {
 func foo5() {
 	//pool, _ := ants.NewPool(5000)
 	//atomic.AddInt32(&r.numClients, 1)
+	var wg sync.WaitGroup
+	wg.Add(1)
 	for i := 1; i <= 5000; i++ {
 		go func() {
 			for {
@@ -82,6 +85,7 @@ func foo5() {
 			}
 		}()
 	}
+	wg.Wait()
 }
 
 func foo6() {
