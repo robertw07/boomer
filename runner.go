@@ -3,7 +3,6 @@ package boomer
 import (
 	"fmt"
 	"github.com/panjf2000/ants/v2"
-	"go.uber.org/ratelimit"
 	"log"
 	"math/rand"
 	"os"
@@ -174,8 +173,6 @@ func (r *runner) spawnWorkers0(spawnCount int, quit chan bool, spawnCompleteFunc
 
 func (r *runner) spawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
 	pool, _ := ants.NewPool(spawnCount)
-	//atomic.AddInt32(&r.numClients, 1)
-	rlimiter := ratelimit.New(5000)
 	for {
 		select {
 		case <-quit:
@@ -184,20 +181,25 @@ func (r *runner) spawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc 
 			return
 		default:
 			r.numClients = int32(pool.Running())
-			rlimiter.Take()
-			pool.Submit(func() {
-				if r.rateLimitEnabled {
-					//blocked := r.rateLimiter.Acquire()
-					//if !blocked {
+			if r.rateLimitEnabled {
+				blocked := r.rateLimiter.Acquire()
+				if !blocked {
 					task := r.getTask()
-					r.safeRun(task.Fn)
-					//}
-				} else {
-					task := r.getTask()
-					r.safeRun(task.Fn)
+					pool.Submit(func() {
+						r.safeRun(task.Fn)
+					})
 				}
-			})
+			} else {
+				task := r.getTask()
+				pool.Submit(func() {
+					r.safeRun(task.Fn)
+				})
+			}
 		}
+	}
+
+	if spawnCompleteFunc != nil {
+		spawnCompleteFunc()
 	}
 }
 
