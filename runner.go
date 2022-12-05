@@ -43,8 +43,9 @@ type runner struct {
 	// TODO: we save user_class_count in spawn message and send it back to master without modification, may be a bad idea?
 	userClassesCountFromMaster map[string]int64
 
-	numClients int32
-	spawnRate  float64
+	numClients       int32
+	spawnRate        float64
+	isOldSpawnWorker bool
 
 	// all running workers(goroutines) will select on this channel.
 	// close this channel will stop all running workers.
@@ -60,6 +61,10 @@ func (r *runner) SetSlaveReportInterval(interval int) {
 	if interval > 0 {
 		slaveReportInterval = time.Duration(interval) * time.Second
 	}
+}
+
+func (r *runner) SetIsOldSpawnWorker(value bool) {
+	r.isOldSpawnWorker = value
 }
 
 // safeRun runs fn and recovers from unexpected panics.
@@ -172,7 +177,7 @@ func (r *runner) spawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc 
 	}
 }
 
-func (r *runner) spawnWorkers1(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
+func (r *runner) newSpawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
 	pool, _ := ants.NewPool(spawnCount)
 	var rlimiter ratelimit.Limiter
 	if RateLimiterNum != 0 {
@@ -279,9 +284,13 @@ func (r *runner) startSpawning(spawnCount int, spawnRate float64, spawnCompleteF
 	r.stopChan = make(chan bool)
 	r.numClients = 0
 
-	//go r.spawnWorkers(spawnCount, r.stopChan, spawnCompleteFunc)
-	//go r.spawnWorkers1(spawnCount, r.stopChan, spawnCompleteFunc)
-	go r.spawnWorkers2(spawnCount, r.stopChan, spawnCompleteFunc)
+	if r.isOldSpawnWorker {
+		go r.spawnWorkers(spawnCount, r.stopChan, spawnCompleteFunc)
+	} else {
+		go r.newSpawnWorkers(spawnCount, r.stopChan, spawnCompleteFunc)
+	}
+
+	//go r.spawnWorkers2(spawnCount, r.stopChan, spawnCompleteFunc)
 
 }
 

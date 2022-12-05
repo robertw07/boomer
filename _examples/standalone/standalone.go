@@ -172,8 +172,6 @@ func main() {
 		Fn:     foo6,
 	}
 
-	//foo5()
-
 	numClients := 1000
 	spawnRate := float64(100)
 	globalBoomer = boomer.NewStandaloneBoomer(numClients, spawnRate)
@@ -182,6 +180,7 @@ func main() {
 	}))
 	limiter := boomer.NewStableRateLimiter(5000, time.Second)
 	globalBoomer.SetRateLimiter(limiter)
+	globalBoomer.SetIsOldSpawnWorker(true)
 	globalBoomer.OutputInterval = 8
 
 	globalBoomer.Run(task6)

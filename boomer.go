@@ -31,9 +31,10 @@ type Boomer struct {
 	rateLimiter RateLimiter
 	slaveRunner *slaveRunner
 
-	localRunner *localRunner
-	spawnCount  int
-	spawnRate   float64
+	localRunner      *localRunner
+	spawnCount       int
+	spawnRate        float64
+	isOldSpawnWorker bool
 
 	cpuProfileFile     string
 	cpuProfileDuration time.Duration
@@ -58,9 +59,10 @@ func NewBoomer(masterHost string, masterPort int) *Boomer {
 // NewStandaloneBoomer returns a new Boomer, which can run without master.
 func NewStandaloneBoomer(spawnCount int, spawnRate float64) *Boomer {
 	return &Boomer{
-		spawnCount: spawnCount,
-		spawnRate:  spawnRate,
-		mode:       StandaloneMode,
+		spawnCount:       spawnCount,
+		spawnRate:        spawnRate,
+		mode:             StandaloneMode,
+		isOldSpawnWorker: false,
 	}
 }
 
@@ -68,6 +70,10 @@ func NewStandaloneBoomer(spawnCount int, spawnRate float64) *Boomer {
 // It must be called before the test is started.
 func (b *Boomer) SetRateLimiter(rateLimiter RateLimiter) {
 	b.rateLimiter = rateLimiter
+}
+
+func (b *Boomer) SetIsOldSpawnWorker(value bool) {
+	b.isOldSpawnWorker = value
 }
 
 // SetMode only accepts boomer.DistributedMode and boomer.StandaloneMode.
@@ -128,6 +134,7 @@ func (b *Boomer) Run(tasks ...*Task) {
 	case StandaloneMode:
 		b.localRunner = newLocalRunner(tasks, b.rateLimiter, b.spawnCount, b.spawnRate)
 		b.localRunner.SetSlaveReportInterval(b.OutputInterval)
+		b.localRunner.SetIsOldSpawnWorker(b.isOldSpawnWorker)
 		for _, o := range b.outputs {
 			b.localRunner.addOutput(o)
 		}

@@ -12,7 +12,7 @@ require (
 	github.com/panjf2000/ants/v2 v2.4.8
 	github.com/prometheus/client_golang v1.11.0
 	github.com/shirou/gopsutil v3.21.10+incompatible
-	github.com/shirou/gopsutil/v3 v3.22.11
+	github.com/shirou/gopsutil/v3 v3.22.10
 	github.com/stretchr/testify v1.8.1
 	github.com/ugorji/go/codec v1.2.6
 	github.com/zeromq/goczmq v0.0.0-20190906225145-a7546843a315
