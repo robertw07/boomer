@@ -46,6 +46,8 @@ type StableRateLimiter struct {
 	broadcastChanMux *sync.RWMutex // avoid data race
 }
 
+var RateLimiterNum int64
+
 // NewStableRateLimiter returns a StableRateLimiter.
 func NewStableRateLimiter(threshold int64, refillPeriod time.Duration) (rateLimiter *StableRateLimiter) {
 	rateLimiter = &StableRateLimiter{
@@ -56,6 +58,7 @@ func NewStableRateLimiter(threshold int64, refillPeriod time.Duration) (rateLimi
 		broadcastChanMux: new(sync.RWMutex),
 		broadcastChannel: make(chan bool),
 	}
+	RateLimiterNum = threshold
 	return rateLimiter
 }
 

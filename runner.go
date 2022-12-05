@@ -3,6 +3,7 @@ package boomer
 import (
 	"fmt"
 	"github.com/panjf2000/ants/v2"
+	"go.uber.org/ratelimit"
 	"log"
 	"math/rand"
 	"os"
@@ -130,7 +131,7 @@ func (r *runner) outputOnStop() {
 	wg.Wait()
 }
 
-func (r *runner) spawnWorkers0(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
+func (r *runner) spawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
 	log.Println("Spawning", spawnCount, "clients immediately")
 
 	for i := 1; i <= spawnCount; i++ {
@@ -171,7 +172,43 @@ func (r *runner) spawnWorkers0(spawnCount int, quit chan bool, spawnCompleteFunc
 	}
 }
 
-func (r *runner) spawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
+func (r *runner) spawnWorkers1(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
+	pool, _ := ants.NewPool(spawnCount)
+	var rlimiter ratelimit.Limiter
+	if RateLimiterNum != 0 {
+		rlimiter = ratelimit.New(5000)
+	}
+
+	for {
+		select {
+		case <-quit:
+			return
+		case <-r.shutdownChan:
+			return
+		default:
+			r.numClients = int32(pool.Running())
+			if rlimiter != nil {
+				rlimiter.Take()
+			}
+
+			pool.Submit(func() {
+				if r.rateLimitEnabled {
+					task := r.getTask()
+					r.safeRun(task.Fn)
+				} else {
+					task := r.getTask()
+					r.safeRun(task.Fn)
+				}
+			})
+		}
+	}
+
+	if spawnCompleteFunc != nil {
+		spawnCompleteFunc()
+	}
+}
+
+func (r *runner) spawnWorkers2(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
 	pool, _ := ants.NewPool(spawnCount)
 	for {
 		select {
@@ -249,7 +286,10 @@ func (r *runner) startSpawning(spawnCount int, spawnRate float64, spawnCompleteF
 	r.stopChan = make(chan bool)
 	r.numClients = 0
 
-	go r.spawnWorkers(spawnCount, r.stopChan, spawnCompleteFunc)
+	//go r.spawnWorkers(spawnCount, r.stopChan, spawnCompleteFunc)
+	//go r.spawnWorkers1(spawnCount, r.stopChan, spawnCompleteFunc)
+	go r.spawnWorkers2(spawnCount, r.stopChan, spawnCompleteFunc)
+
 }
 
 func (r *runner) stop() {
