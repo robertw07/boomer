@@ -175,10 +175,12 @@ func (o *ConsoleOutput) OnEvent(data map[string]interface{}) {
 	sortOutput(allStats.Stats)
 
 	currentTime := time.Now()
+	computerMonitor := GetCpuMem()
 	println(fmt.Sprintf("Current Data: %s, Users: %d, Total RPS: %d, Total Fail Ratio: %.1f%%",
 		currentTime.Format("2006/01/02 15:04:05"), output.UserCount, output.TotalRPS, output.TotalFailRatio*100))
 	println(fmt.Sprintf("Summary data: %s, Users: %d, Total RPS: %d, Total Fail Ratio: %.1f%%",
 		currentTime.Format("2006/01/02 15:04:05"), allStats.UserCount, allStats.TotalRPS, allStats.TotalFailRatio*100))
+	println(fmt.Sprintf("Client Monitor: Cpu:%.1f%%, Memory:%.1f%%", computerMonitor.CPU, computerMonitor.Mem))
 	table := tablewriter.NewWriter(os.Stdout)
 
 	pTitle := "L90"

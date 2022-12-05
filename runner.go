@@ -178,7 +178,6 @@ func (r *runner) spawnWorkers1(spawnCount int, quit chan bool, spawnCompleteFunc
 	if RateLimiterNum != 0 {
 		rlimiter = ratelimit.New(5000)
 	}
-
 	for {
 		select {
 		case <-quit:
@@ -186,20 +185,14 @@ func (r *runner) spawnWorkers1(spawnCount int, quit chan bool, spawnCompleteFunc
 		case <-r.shutdownChan:
 			return
 		default:
-			r.numClients = int32(pool.Running())
 			if rlimiter != nil {
 				rlimiter.Take()
 			}
-
 			pool.Submit(func() {
-				if r.rateLimitEnabled {
-					task := r.getTask()
-					r.safeRun(task.Fn)
-				} else {
-					task := r.getTask()
-					r.safeRun(task.Fn)
-				}
+				task := r.getTask()
+				r.safeRun(task.Fn)
 			})
+			r.numClients = int32(pool.Running())
 		}
 	}
 
