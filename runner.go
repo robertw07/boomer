@@ -178,10 +178,11 @@ func (r *runner) spawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc 
 }
 
 func (r *runner) newSpawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
+	log.Println("Spawning clients dynamically")
 	pool, _ := ants.NewPool(spawnCount)
 	var rlimiter ratelimit.Limiter
 	if RateLimiterNum != 0 {
-		rlimiter = ratelimit.New(5000)
+		rlimiter = ratelimit.New(int(RateLimiterNum))
 	}
 	for {
 		select {

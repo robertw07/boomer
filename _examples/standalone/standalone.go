@@ -6,7 +6,6 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -119,7 +118,7 @@ func foo6() {
 	duration := eTime.Sub(sTime).Milliseconds()
 	a := rand.Intn(100)
 	if a == 50 {
-		fmt.Println(runtime.NumGoroutine())
+		//fmt.Println(runtime.NumGoroutine())ß
 	}
 	if err == nil {
 		bodyByte, _ := ioutil.ReadAll(resp.Body)

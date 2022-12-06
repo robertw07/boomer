@@ -128,6 +128,9 @@ func getCurrentRps(numRequests int64, numReqsPerSecond map[int64]int64) (current
 	//	count = int64(len(numReqsPerSecond))
 	//}
 	numReqsPerSecondLength := int64(len(numReqsPerSecond))
+	for key, value := range numReqsPerSecond {
+		fmt.Printf("[%d:%d]", key, value)
+	}
 	if numReqsPerSecondLength != 0 {
 		currentRps = numRequests / numReqsPerSecondLength
 	}
