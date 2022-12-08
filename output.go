@@ -121,18 +121,20 @@ func getCurrentRps(numRequests int64, numReqsPerSecond map[int64]int64) (current
 	currentRps = int64(0)
 
 	//fix accuracy issue by robert
-	//var count int64
-	//if len(numReqsPerSecond) > 1 {
-	//	count = int64(len(numReqsPerSecond) - 1)
-	//} else {
-	//	count = int64(len(numReqsPerSecond))
-	//}
-	numReqsPerSecondLength := int64(len(numReqsPerSecond))
-	for key, value := range numReqsPerSecond {
-		fmt.Printf("[%d:%d]", key, value)
+	var count int64
+	if len(numReqsPerSecond) > 2 {
+		count = int64(len(numReqsPerSecond) - 1)
+	} else {
+		count = int64(len(numReqsPerSecond))
 	}
-	if numReqsPerSecondLength != 0 {
-		currentRps = numRequests / numReqsPerSecondLength
+	//numReqsPerSecondLength := int64(len(numReqsPerSecond))
+	//if numReqsPerSecondLength < 15 {
+	//	for key, value := range numReqsPerSecond {
+	//		fmt.Printf("[%d:%d]", key, value)
+	//	}
+	//}
+	if count != 0 {
+		currentRps = numRequests / count
 	}
 	//currentRps = numRequests / int64(len(numReqsPerSecond))
 	return currentRps
