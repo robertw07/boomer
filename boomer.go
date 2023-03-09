@@ -92,6 +92,10 @@ func (b *Boomer) SetOutputInterval(interval int) {
 	b.OutputInterval = interval
 }
 
+func (b *Boomer) SetOutputJsonFile(jsonFile string) {
+
+}
+
 // AddOutput accepts outputs which implements the boomer.Output interface.
 func (b *Boomer) AddOutput(o Output) {
 	b.outputs = append(b.outputs, o)

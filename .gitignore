@@ -16,3 +16,4 @@ cpu.pprof
 
 # sphinx build
 docs/build
+*.json

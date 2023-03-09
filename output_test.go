@@ -15,14 +15,14 @@ func TestGetMedianResponseTime(t *testing.T) {
 
 	medianResponseTime := getMedianResponseTime(numRequests, responseTimes)
 	if medianResponseTime != 300 {
-		t.Error("medianResponseTime should be 300")
+		t.Error("MedianResponseTime should be 300")
 	}
 
 	responseTimes = map[int64]int64{}
 
 	medianResponseTime = getMedianResponseTime(numRequests, responseTimes)
 	if medianResponseTime != 0 {
-		t.Error("medianResponseTime should be 0")
+		t.Error("MedianResponseTime should be 0")
 	}
 }
 
@@ -32,12 +32,12 @@ func TestGetAvgResponseTime(t *testing.T) {
 
 	avgResponseTime := getAvgResponseTime(numRequests, totalResponseTime)
 	if math.Dim(float64(33.33), avgResponseTime) > 0.01 {
-		t.Error("avgResponseTime should be close to 33.33")
+		t.Error("AvgResponseTime should be close to 33.33")
 	}
 
 	avgResponseTime = getAvgResponseTime(int64(0), totalResponseTime)
 	if avgResponseTime != float64(0) {
-		t.Error("avgResponseTime should be close to 0")
+		t.Error("AvgResponseTime should be close to 0")
 	}
 }
 
@@ -47,12 +47,12 @@ func TestGetAvgContentLength(t *testing.T) {
 
 	avgContentLength := getAvgContentLength(numRequests, totalContentLength)
 	if avgContentLength != 33 {
-		t.Error("avgContentLength should be 33")
+		t.Error("AvgContentLength should be 33")
 	}
 
 	avgContentLength = getAvgContentLength(int64(0), totalContentLength)
 	if avgContentLength != 0 {
-		t.Error("avgContentLength should be 0")
+		t.Error("AvgContentLength should be 0")
 	}
 }
 
@@ -62,7 +62,7 @@ func TestGetCurrentRps(t *testing.T) {
 
 	currentRps := getCurrentRps(numRequests, numReqsPerSecond)
 	if currentRps != 0 {
-		t.Error("currentRps should be 0")
+		t.Error("CurrentRps should be 0")
 	}
 
 	numReqsPerSecond[1] = 2
@@ -72,7 +72,7 @@ func TestGetCurrentRps(t *testing.T) {
 
 	currentRps = getCurrentRps(numRequests, numReqsPerSecond)
 	if currentRps != 2 {
-		t.Error("currentRps should be 2")
+		t.Error("CurrentRps should be 2")
 	}
 }
 

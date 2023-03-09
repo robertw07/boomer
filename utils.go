@@ -137,3 +137,46 @@ func GetCurrentCPUUsage() float64 {
 	}
 	return percent / float64(runtime.NumCPU())
 }
+
+func AppendLineToFile(filePath, lineStr string) bool {
+	var file *os.File
+	var err1 error
+	if CheckFileIsExist(filePath) {
+		file, err1 = os.OpenFile(filePath, os.O_RDWR|os.O_APPEND, 0660)
+	} else {
+		file, err1 = os.Create(filePath)
+	}
+	if err1 != nil {
+		log.Fatal(err1)
+		return false
+	}
+	file.WriteString(lineStr)
+	file.WriteString("\n")
+	defer file.Close()
+	file.Sync()
+	return true
+}
+
+func WriteTextToFile(filePath, text string) bool {
+	var file *os.File
+	var err1 error
+	if CheckFileIsExist(filePath) {
+		os.Remove(filePath)
+	}
+	file, err1 = os.Create(filePath)
+	if err1 != nil {
+		log.Fatal(err1)
+		return false
+	}
+	file.WriteString(text)
+	defer file.Close()
+	file.Sync()
+	return true
+}
+
+func CheckFileIsExist(filePath string) bool {
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}

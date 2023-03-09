@@ -110,16 +110,12 @@ func foo6() {
 	nr, _ := http.NewRequest("POST", "https://bsc-mainnet.bk.nodereal.cc/v1/f34f62e7c0b343ef9f5bf80031a49cc2",
 		strings.NewReader("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"eth_getStorageAt\",\"params\":[\"0xbA2aE424d960c26247Dd6c32edC70B295c744C43\",\"0x0\",\"0x14da8d9\"]}"))
 	nr.Header.Add("Content-Type", "application/json")
-
+	time.Sleep(1 * time.Second)
 	client := &http.Client{Timeout: 60 * time.Second}
 	sTime := time.Now()
 	resp, err := client.Do(nr)
 	eTime := time.Now()
 	duration := eTime.Sub(sTime).Milliseconds()
-	a := rand.Intn(100)
-	if a == 50 {
-		//fmt.Println(runtime.NumGoroutine())ß
-	}
 	if err == nil {
 		bodyByte, _ := ioutil.ReadAll(resp.Body)
 		bodyStr := string(bodyByte)
@@ -141,45 +137,47 @@ func main() {
 	//	Fn:     foo1,
 	//}
 
-	//task2 := &boomer.Task{
-	//	Name:   "foo2",
-	//	Weight: 10,
-	//	Fn:     foo2,
-	//}
+	task2 := &boomer.Task{
+		Name:   "foo2",
+		Weight: 10,
+		Fn:     foo2,
+	}
 
 	//task3 := &boomer.Task{
 	//	Name:   "foo3",
 	//	Weight: 20,
 	//	Fn:     foo3,
 	//}
-
 	//task4 := &boomer.Task{
 	//	Name:   "foo4",
 	//	Weight: 10,
 	//	Fn:     foo4,
 	//}
-
 	//task5 := &boomer.Task{
 	//	Name:   "foo5",
 	//	Weight: 10,
 	//	Fn:     foo5,
 	//}
-
-	task6 := &boomer.Task{
-		Name:   "foo6",
-		Weight: 10,
-		Fn:     foo6,
-	}
+	//task6 := &boomer.Task{
+	//	Name:   "foo6",
+	//	Weight: 10,
+	//	Fn:     foo6,
+	//}
 
 	numClients := 1000
 	spawnRate := float64(100)
 	globalBoomer = boomer.NewStandaloneBoomer(numClients, spawnRate)
-	globalBoomer.AddOutput(boomer.NewConsoleOutputWithOptions(&boomer.OutputOptions{
-		PercentTime: 90,
+	//globalBoomer.AddOutput(boomer.NewConsoleOutputWithOptions(&boomer.OutputOptions{
+	//	PercentTime: 90,
+	//}))
+	globalBoomer.AddOutput(boomer.NewJsonFileOutputWithOptions(&boomer.OutputOptions{
+		PercentTime:        90,
+		RealTimeResultPath: "realTimeResult.json",
+		TotalResultPath:    "totalResult.json",
 	}))
-	limiter := boomer.NewStableRateLimiter(5000, time.Second)
+	limiter := boomer.NewStableRateLimiter(1000, time.Second)
 	globalBoomer.SetRateLimiter(limiter)
 	globalBoomer.SetIsOldSpawnWorker(false)
-	globalBoomer.OutputInterval = 8
-	globalBoomer.Run(task6)
+	globalBoomer.OutputInterval = 10
+	globalBoomer.Run(task2)
 }

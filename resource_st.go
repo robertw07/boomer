@@ -1,7 +1,9 @@
 package boomer
 
 import (
+	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/shirou/gopsutil/mem"
@@ -57,7 +59,8 @@ func GetCPUPercent() float64 {
 		log.Fatalln(err.Error())
 		return -1
 	}
-	return percent[0]
+	result, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", percent[0]), 64)
+	return result
 }
 
 // GetMemPercent 获取内存使用率
@@ -67,15 +70,13 @@ func GetMemPercent() float64 {
 		log.Fatalln(err.Error())
 		return -1
 	}
-	return memInfo.UsedPercent
+	result, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", memInfo.UsedPercent), 64)
+	return result
 }
 
 func GetCpuMem() ComputerMonitor {
 	var res ComputerMonitor
 	res.CPU = GetCPUPercent()
 	res.Mem = GetMemPercent()
-	//fmt.Printf("%v", res)
-	//fmt.Printf("cpu使用率：%.2f%%\n", res.CPU)
-	//fmt.Printf("内存使用率：%.2f%%\n", res.Mem)
 	return res
 }
