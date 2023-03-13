@@ -298,99 +298,66 @@ func (o *JsonFileOutput) OnEvent(data map[string]interface{}) {
 	currentTime := time.Now()
 	computerMonitor := GetCpuMem()
 
-	println(fmt.Sprintf("Current Data: %s, Users: %d, Total RPS: %d, Total Fail Ratio: %.1f%%",
-		currentTime.Format("2006/01/02 15:04:05"), output.UserCount, output.TotalRPS, output.TotalFailRatio*100))
-	println(fmt.Sprintf("Summary data: %s, Users: %d, Total RPS: %d, Total Fail Ratio: %.1f%%",
-		currentTime.Format("2006/01/02 15:04:05"), allStats.UserCount, allStats.TotalRPS, allStats.TotalFailRatio*100))
-	println(fmt.Sprintf("Client Monitor: Cpu:%.1f%%, Memory:%.1f%%", computerMonitor.CPU, computerMonitor.Mem))
-	table := tablewriter.NewWriter(os.Stdout)
-
-	pTitle := "L90"
-	if OutputOps.PercentTime > 0 {
-		pTitle = fmt.Sprintf("L%d", OutputOps.PercentTime)
-	}
-	table.SetHeader([]string{"Type", "Name", "# requests", "# fails", "L50", pTitle, "Average", "Min", "Max", "Content Size", "# reqs/sec", "# fails/sec"})
-	table.Append([]string{"Current Data:"})
-	for _, stat := range output.Stats {
-		row := make([]string, 12)
-		row[0] = stat.Method
-		row[1] = stat.Name
-		row[2] = strconv.FormatInt(stat.NumRequests, 10)
-		row[3] = strconv.FormatInt(stat.NumFailures, 10)
-		row[4] = strconv.FormatInt(stat.MedianResponseTime, 10)
-		row[5] = strconv.FormatInt(stat.PercentResponseTime, 10)
-		row[6] = strconv.FormatFloat(stat.AvgResponseTime, 'f', 2, 64)
-		row[7] = strconv.FormatInt(stat.MinResponseTime, 10)
-		row[8] = strconv.FormatInt(stat.MaxResponseTime, 10)
-		row[9] = strconv.FormatInt(stat.AvgContentLength, 10)
-		row[10] = strconv.FormatInt(stat.CurrentRps, 10)
-		row[11] = strconv.FormatInt(stat.CurrentFailPerSec, 10)
-		table.Append(row)
-	}
-	table.Append([]string{"Summary Data:"})
-	for _, stat := range allStats.Stats {
-		row := make([]string, 12)
-		row[0] = stat.Method
-		row[1] = stat.Name
-		row[2] = strconv.FormatInt(stat.NumRequests, 10)
-		row[3] = strconv.FormatInt(stat.NumFailures, 10)
-		row[4] = strconv.FormatInt(stat.MedianResponseTime, 10)
-		row[5] = strconv.FormatInt(stat.PercentResponseTime, 10)
-		row[6] = strconv.FormatFloat(stat.AvgResponseTime, 'f', 2, 64)
-		row[7] = strconv.FormatInt(stat.MinResponseTime, 10)
-		row[8] = strconv.FormatInt(stat.MaxResponseTime, 10)
-		row[9] = strconv.FormatInt(stat.AvgContentLength, 10)
-		row[10] = strconv.FormatInt(stat.CurrentRps, 10)
-		row[11] = strconv.FormatInt(stat.CurrentFailPerSec, 10)
-		table.Append(row)
-	}
-	table.Render()
-	println()
-
 	// 当前统计数据
 	if OutputOps.RealTimeResultPath != "" {
-		outputTem := *output
-		if &outputTem != nil && outputTem.TotalStats != nil && outputTem.Stats != nil {
-			outputTem.TotalStats.ResponseTimes = nil
-			outputTem.TotalStats.NumReqsPerSec = nil
-			outputTem.TotalStats.NumFailPerSec = nil
-			for i := 0; i < len(outputTem.Stats); i++ {
-				stat := outputTem.Stats[i]
-				stat.ResponseTimes = nil
-				stat.NumReqsPerSec = nil
-				stat.NumFailPerSec = nil
+		realTimeResult := ResultData{
+			UserCount:      output.UserCount,
+			TotalRPS:       output.TotalRPS,
+			TotalFailRatio: output.TotalFailRatio,
+			Errors:         output.Errors,
+		}
+		if output.TotalStats != nil {
+			realTimeResult.TotalStats = *output.TotalStats
+			realTimeResult.TotalStats.NumReqsPerSec = nil
+			realTimeResult.TotalStats.NumFailPerSec = nil
+			realTimeResult.TotalStats.ResponseTimes = nil
+		}
+		if output.Stats != nil {
+			realTimeResult.Stats = []statsEntryOutput{}
+			for _, stat := range output.Stats {
+				temStat := *stat
+				temStat.NumFailPerSec = nil
+				temStat.NumReqsPerSec = nil
+				temStat.ResponseTimes = nil
+				realTimeResult.Stats = append(realTimeResult.Stats, temStat)
 			}
 		}
-
-		outputTem.Errors = nil
 		jsonOutPut := RealTimeJsonOutput{
-			CurrTime: &currentTime,
-			CurrData: &outputTem,
-			Monitor:  &computerMonitor,
+			CurrTime:   currentTime,
+			CurrResult: realTimeResult,
+			Monitor:    computerMonitor,
 		}
 		jsonStr, _ := json.Marshal(jsonOutPut)
 		AppendLineToFile(OutputOps.RealTimeResultPath, string(jsonStr))
 	}
 
 	// 累计统计数据
-	if OutputOps.TotalResultPath != "" {
-		outputTem := *allStats
-
-		if &outputTem != nil && outputTem.TotalStats != nil && outputTem.Stats != nil {
-			outputTem.TotalStats.ResponseTimes = nil
-			outputTem.TotalStats.NumReqsPerSec = nil
-			outputTem.TotalStats.NumFailPerSec = nil
-			for i := 0; i < len(outputTem.Stats); i++ {
-				stat := outputTem.Stats[i]
-				stat.ResponseTimes = nil
-				stat.NumReqsPerSec = nil
-				stat.NumFailPerSec = nil
+	if OutputOps.TotalResultPath != "" && allStats != nil {
+		totalResult := ResultData{
+			UserCount:      allStats.UserCount,
+			TotalRPS:       allStats.TotalRPS,
+			TotalFailRatio: allStats.TotalFailRatio,
+			Errors:         allStats.Errors,
+		}
+		if allStats.TotalStats != nil {
+			totalResult.TotalStats = *allStats.TotalStats
+			totalResult.TotalStats.NumFailPerSec = nil
+			totalResult.TotalStats.NumReqsPerSec = nil
+			totalResult.TotalStats.ResponseTimes = nil
+		}
+		if output.Stats != nil {
+			totalResult.Stats = []statsEntryOutput{}
+			for _, stat := range output.Stats {
+				temStat := *stat
+				temStat.NumFailPerSec = nil
+				temStat.NumReqsPerSec = nil
+				temStat.ResponseTimes = nil
+				totalResult.Stats = append(totalResult.Stats, temStat)
 			}
 		}
-
 		totalOutput := TotalJsonOutput{
-			TotalData: &outputTem,
-			CurrTime:  &currentTime,
+			TotalData: totalResult,
+			CurrTime:  currentTime,
 		}
 		jsonStr, _ := json.Marshal(totalOutput)
 		WriteTextToFile(OutputOps.TotalResultPath, string(jsonStr))
@@ -516,13 +483,22 @@ type DataOutputJson struct {
 	UserCount int32
 }
 type RealTimeJsonOutput struct {
-	Monitor  *ComputerMonitor `json:"monitor"`
-	CurrData *dataOutput      `json:"curr_data"`
-	CurrTime *time.Time       `json:"curr_time"`
+	Monitor    ComputerMonitor `json:"monitor"`
+	CurrResult ResultData      `json:"curr_result"`
+	CurrTime   time.Time       `json:"curr_time"`
 }
 type TotalJsonOutput struct {
-	TotalData *dataOutput `json:"total_data"`
-	CurrTime  *time.Time  `json: curr_time`
+	TotalData ResultData `json:"total_result"`
+	CurrTime  time.Time  `json:"curr_time""`
+}
+
+type ResultData struct {
+	UserCount      int32                             `json:"user_count"`
+	TotalRPS       int64                             `json:"total_rps"`
+	TotalFailRatio float64                           `json:"total_fail_ratio"`
+	TotalStats     statsEntryOutput                  `json:"stats_total"`
+	Stats          []statsEntryOutput                `json:"stats"`
+	Errors         map[string]map[string]interface{} `json:"errors"`
 }
 
 func convertData(data map[string]interface{}) (output *dataOutput, err error) {

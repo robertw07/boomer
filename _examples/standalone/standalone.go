@@ -178,6 +178,6 @@ func main() {
 	limiter := boomer.NewStableRateLimiter(1000, time.Second)
 	globalBoomer.SetRateLimiter(limiter)
 	globalBoomer.SetIsOldSpawnWorker(false)
-	globalBoomer.OutputInterval = 10
+	globalBoomer.OutputInterval = 3
 	globalBoomer.Run(task2)
 }
