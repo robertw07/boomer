@@ -143,30 +143,6 @@ func (o *ConsoleOutput) OnEvent(data map[string]interface{}) {
 	}
 	table.Render()
 	println()
-
-	//if output != nil && output.TotalStats != nil && output.Stats != nil {
-	//	output.TotalStats.ResponseTimes = nil
-	//	output.TotalStats.NumReqsPerSec = nil
-	//	output.TotalStats.NumFailPerSec = nil
-	//	for i := 0; i < len(output.Stats); i++ {
-	//		stat := output.Stats[i]
-	//		stat.ResponseTimes = nil
-	//		stat.NumReqsPerSec = nil
-	//		stat.NumFailPerSec = nil
-	//	}
-	//}
-	//
-	//if allStats != nil && allStats.TotalStats != nil && allStats.Stats != nil {
-	//	allStats.TotalStats.ResponseTimes = nil
-	//	allStats.TotalStats.NumReqsPerSec = nil
-	//	allStats.TotalStats.NumFailPerSec = nil
-	//	for i := 0; i < len(allStats.Stats); i++ {
-	//		stat := allStats.Stats[i]
-	//		stat.ResponseTimes = nil
-	//		stat.NumReqsPerSec = nil
-	//		stat.NumFailPerSec = nil
-	//	}
-	//}
 }
 
 func getMedianResponseTime(numRequests int64, responseTimes map[int64]int64) int64 {
@@ -304,7 +280,7 @@ func (o *JsonFileOutput) OnEvent(data map[string]interface{}) {
 			UserCount:      output.UserCount,
 			TotalRPS:       output.TotalRPS,
 			TotalFailRatio: output.TotalFailRatio,
-			Errors:         output.Errors,
+			//Errors:         output.Errors,
 		}
 		if output.TotalStats != nil {
 			realTimeResult.TotalStats = *output.TotalStats
@@ -411,7 +387,6 @@ func buildAllStats(output *dataOutput) {
 				aItem.AvgResponseTime = getAvgResponseTime(aItem.NumRequests, aItem.TotalResponseTime)
 				aItem.CurrentRps = getCurrentRps(aItem.NumRequests, aItem.NumReqsPerSec)
 				aItem.CurrentFailPerSec = getCurrentFailPerSec(aItem.NumFailures, aItem.NumFailPerSec)
-
 				hasItem = true
 				break
 			}
@@ -419,6 +394,34 @@ func buildAllStats(output *dataOutput) {
 
 		if !hasItem {
 			allStats.Stats = append(allStats.Stats, oItem)
+		}
+	}
+
+	if allStats.TotalStats == nil {
+		allStats.TotalStats = &statsEntryOutput{
+			statsEntry: statsEntry{
+				Name: "Total",
+			},
+		}
+	} else {
+		allStats.TotalStats.NumRequests += output.TotalStats.NumRequests
+		allStats.TotalStats.NumFailures += output.TotalStats.NumFailures
+	}
+
+	if allStats.Errors == nil {
+		allStats.Errors = map[string]map[string]interface{}{}
+	}
+	for key, value := range output.Errors {
+		hasAdd := false
+		for key1, value1 := range allStats.Errors {
+			if key == key1 {
+				value1["occurrences"] = value1["occurrences"].(int64) + value["occurrences"].(int64)
+				hasAdd = true
+				break
+			}
+		}
+		if !hasAdd {
+			allStats.Errors[key] = value
 		}
 	}
 
@@ -435,6 +438,7 @@ func buildAllStats(output *dataOutput) {
 		allStats.TotalFailedCount = allStats.TotalFailedCount + aItem.NumFailures
 	}
 
+	//allStats.TotalStats
 	if allStats.TotalRequestCount != 0 {
 		allStats.TotalFailRatio = float64(allStats.TotalFailedCount) / float64(allStats.TotalRequestCount)
 	}
@@ -520,6 +524,7 @@ func convertData(data map[string]interface{}) (output *dataOutput, err error) {
 	if err != nil {
 		return nil, err
 	}
+	errors := data["errors"].(map[string]map[string]interface{})
 
 	output = &dataOutput{
 		UserCount:      userCount,
@@ -528,6 +533,7 @@ func convertData(data map[string]interface{}) (output *dataOutput, err error) {
 		TotalFailRatio: getTotalFailRatio(entryTotalOutput.NumRequests, entryTotalOutput.NumFailures),
 		Stats:          make([]*statsEntryOutput, 0, len(stats)),
 		NumReqsPerSec:  entryTotalOutput.NumReqsPerSec,
+		Errors:         errors,
 	}
 
 	// convert stats
