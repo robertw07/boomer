@@ -430,8 +430,8 @@ func buildAllStats(output *dataOutput) {
 	}
 
 	allStats.TotalRPS = 0
-	allStats.TotalRequestCount = 0
-	allStats.TotalFailedCount = 0
+	//allStats.TotalRequestCount = 0
+	//allStats.TotalFailedCount = 0
 	for _, aItem := range allStats.Stats {
 		allStats.TotalRPS = allStats.TotalRPS + aItem.CurrentRps
 		allStats.TotalRequestCount = allStats.TotalRequestCount + aItem.NumRequests

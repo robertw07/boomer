@@ -167,14 +167,14 @@ func main() {
 	numClients := 1000
 	spawnRate := float64(100)
 	globalBoomer = boomer.NewStandaloneBoomer(numClients, spawnRate)
-	//globalBoomer.AddOutput(boomer.NewConsoleOutputWithOptions(&boomer.OutputOptions{
-	//	PercentTime: 90,
-	//}))
-	globalBoomer.AddOutput(boomer.NewJsonFileOutputWithOptions(&boomer.OutputOptions{
-		PercentTime:        90,
-		RealTimeResultPath: "realTimeResult.json",
-		TotalResultPath:    "totalResult.json",
+	globalBoomer.AddOutput(boomer.NewConsoleOutputWithOptions(&boomer.OutputOptions{
+		PercentTime: 90,
 	}))
+	//globalBoomer.AddOutput(boomer.NewJsonFileOutputWithOptions(&boomer.OutputOptions{
+	//	PercentTime:        90,
+	//	RealTimeResultPath: "realTimeResult.json",
+	//	TotalResultPath:    "totalResult.json",
+	//}))
 	limiter := boomer.NewStableRateLimiter(1000, time.Second)
 	globalBoomer.SetRateLimiter(limiter)
 	globalBoomer.SetIsOldSpawnWorker(false)
