@@ -323,7 +323,7 @@ func (o *JsonFileOutput) OnEvent(data map[string]interface{}) {
 		}
 		if output.Stats != nil {
 			totalResult.Stats = []statsEntryOutput{}
-			for _, stat := range output.Stats {
+			for _, stat := range allStats.Stats {
 				temStat := *stat
 				temStat.NumFailPerSec = nil
 				temStat.NumReqsPerSec = nil
@@ -430,8 +430,8 @@ func buildAllStats(output *dataOutput) {
 	}
 
 	allStats.TotalRPS = 0
-	//allStats.TotalRequestCount = 0
-	//allStats.TotalFailedCount = 0
+	allStats.TotalRequestCount = 0
+	allStats.TotalFailedCount = 0
 	for _, aItem := range allStats.Stats {
 		allStats.TotalRPS = allStats.TotalRPS + aItem.CurrentRps
 		allStats.TotalRequestCount = allStats.TotalRequestCount + aItem.NumRequests
