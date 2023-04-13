@@ -2,7 +2,7 @@ package boomer
 
 import (
 	"fmt"
-	"log"
+	"github.com/prometheus/common/log"
 	"strconv"
 	"time"
 
@@ -56,7 +56,7 @@ type ComputerMonitor struct {
 func GetCPUPercent() float64 {
 	percent, err := cpu.Percent(time.Second, false)
 	if err != nil {
-		log.Fatalln(err.Error())
+		log.Error(err.Error())
 		return -1
 	}
 	result, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", percent[0]), 64)
@@ -67,7 +67,7 @@ func GetCPUPercent() float64 {
 func GetMemPercent() float64 {
 	memInfo, err := mem.VirtualMemory()
 	if err != nil {
-		log.Fatalln(err.Error())
+		log.Error(err.Error())
 		return -1
 	}
 	result, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", memInfo.UsedPercent), 64)
