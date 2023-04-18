@@ -147,7 +147,7 @@ func AppendLineToFile(filePath, lineStr string) bool {
 		file, err1 = os.Create(filePath)
 	}
 	if err1 != nil {
-		log.Fatal(err1)
+		log.Println(err1)
 		return false
 	}
 	file.WriteString(lineStr)
