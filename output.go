@@ -98,12 +98,12 @@ func (o *ConsoleOutput) OnEvent(data map[string]interface{}) {
 	println(fmt.Sprintf("Client Monitor: Cpu:%.1f%%, Memory:%.1f%%", computerMonitor.CPU, computerMonitor.Mem))
 	table := tablewriter.NewWriter(os.Stdout)
 
-	pTitle := "L90"
+	pTitle := "P90"
 	if OutputOps.PercentTime > 0 {
 		pTitle = fmt.Sprintf("L%d", OutputOps.PercentTime)
 	}
 
-	table.SetHeader([]string{"Type", "Name", "# requests", "# fails", "L50", pTitle, "Average", "Min", "Max", "Content Size", "# reqs/sec", "# fails/sec"})
+	table.SetHeader([]string{"Type", "Name", "# requests", "# fails", "P50", pTitle, "P95", "Average", "Min", "Max", "Content Size", "# reqs/sec", "# fails/sec"})
 
 	table.Append([]string{"Current Data:"})
 	for _, stat := range output.Stats {
@@ -114,12 +114,13 @@ func (o *ConsoleOutput) OnEvent(data map[string]interface{}) {
 		row[3] = strconv.FormatInt(stat.NumFailures, 10)
 		row[4] = strconv.FormatInt(stat.MedianResponseTime, 10)
 		row[5] = strconv.FormatInt(stat.PercentResponseTime, 10)
-		row[6] = strconv.FormatFloat(stat.AvgResponseTime, 'f', 2, 64)
-		row[7] = strconv.FormatInt(stat.MinResponseTime, 10)
-		row[8] = strconv.FormatInt(stat.MaxResponseTime, 10)
-		row[9] = strconv.FormatInt(stat.AvgContentLength, 10)
-		row[10] = strconv.FormatInt(stat.CurrentRps, 10)
-		row[11] = strconv.FormatInt(stat.CurrentFailPerSec, 10)
+		row[6] = strconv.FormatInt(stat.Percent95ResponseTime, 10)
+		row[7] = strconv.FormatFloat(stat.AvgResponseTime, 'f', 2, 64)
+		row[8] = strconv.FormatInt(stat.MinResponseTime, 10)
+		row[9] = strconv.FormatInt(stat.MaxResponseTime, 10)
+		row[10] = strconv.FormatInt(stat.AvgContentLength, 10)
+		row[11] = strconv.FormatInt(stat.CurrentRps, 10)
+		row[12] = strconv.FormatInt(stat.CurrentFailPerSec, 10)
 		table.Append(row)
 	}
 
@@ -133,12 +134,13 @@ func (o *ConsoleOutput) OnEvent(data map[string]interface{}) {
 		row[3] = strconv.FormatInt(stat.NumFailures, 10)
 		row[4] = strconv.FormatInt(stat.MedianResponseTime, 10)
 		row[5] = strconv.FormatInt(stat.PercentResponseTime, 10)
-		row[6] = strconv.FormatFloat(stat.AvgResponseTime, 'f', 2, 64)
-		row[7] = strconv.FormatInt(stat.MinResponseTime, 10)
-		row[8] = strconv.FormatInt(stat.MaxResponseTime, 10)
-		row[9] = strconv.FormatInt(stat.AvgContentLength, 10)
-		row[10] = strconv.FormatInt(stat.CurrentRps, 10)
-		row[11] = strconv.FormatInt(stat.CurrentFailPerSec, 10)
+		row[6] = strconv.FormatInt(stat.Percent95ResponseTime, 10)
+		row[7] = strconv.FormatFloat(stat.AvgResponseTime, 'f', 2, 64)
+		row[8] = strconv.FormatInt(stat.MinResponseTime, 10)
+		row[9] = strconv.FormatInt(stat.MaxResponseTime, 10)
+		row[10] = strconv.FormatInt(stat.AvgContentLength, 10)
+		row[11] = strconv.FormatInt(stat.CurrentRps, 10)
+		row[12] = strconv.FormatInt(stat.CurrentFailPerSec, 10)
 		table.Append(row)
 	}
 	table.Render()
@@ -183,10 +185,10 @@ func getAvgContentLength(numRequests int64, totalContentLength int64) (avgConten
 	return avgContentLength
 }
 
-func getPercentResponseTime(numRequests int64, responseTimes map[int64]int64) int64 {
+func getPercentResponseTime(numRequests int64, responseTimes map[int64]int64, percentValue int) int64 {
 	medianResponseTime := int64(0)
 	if len(responseTimes) != 0 {
-		pos := (numRequests - 1) * (int64(OutputOps.PercentTime)) / 100
+		pos := (numRequests - 1) * (int64(percentValue)) / 100
 		var sortedKeys []int64
 		for k := range responseTimes {
 			sortedKeys = append(sortedKeys, k)
@@ -215,16 +217,9 @@ func getCurrentRps(numRequests int64, numReqsPerSecond map[int64]int64) (current
 	} else {
 		count = int64(len(numReqsPerSecond))
 	}
-	//numReqsPerSecondLength := int64(len(numReqsPerSecond))
-	//if numReqsPerSecondLength < 15 {
-	//	for key, value := range numReqsPerSecond {
-	//		fmt.Printf("[%d:%d]", key, value)
-	//	}
-	//}
 	if count != 0 {
 		currentRps = numRequests / count
 	}
-	//CurrentRps = numRequests / int64(len(numReqsPerSecond))
 	return currentRps
 }
 
@@ -383,7 +378,8 @@ func buildAllStats(output *dataOutput) {
 					aItem.NumFailPerSec[key] = value
 				}
 				aItem.MedianResponseTime = getMedianResponseTime(aItem.NumRequests, aItem.ResponseTimes)
-				aItem.PercentResponseTime = getPercentResponseTime(aItem.NumRequests, aItem.ResponseTimes)
+				aItem.PercentResponseTime = getPercentResponseTime(aItem.NumRequests, aItem.ResponseTimes, OutputOps.PercentTime)
+				aItem.Percent95ResponseTime = getPercentResponseTime(aItem.NumRequests, aItem.ResponseTimes, 95)
 				aItem.AvgResponseTime = getAvgResponseTime(aItem.NumRequests, aItem.TotalResponseTime)
 				aItem.CurrentRps = getCurrentRps(aItem.NumRequests, aItem.NumReqsPerSec)
 				aItem.CurrentFailPerSec = getCurrentFailPerSec(aItem.NumFailures, aItem.NumFailPerSec)
@@ -463,12 +459,13 @@ func sortOutput(stats []*statsEntryOutput) []*statsEntryOutput {
 type statsEntryOutput struct {
 	statsEntry
 
-	MedianResponseTime  int64   `json:"median_response_time"`  // median response time
-	PercentResponseTime int64   `json:"percent_response_time"` // custom a percent response time
-	AvgResponseTime     float64 `json:"avg_response_time"`     // average response time, round float to 2 decimal places
-	AvgContentLength    int64   `json:"avg_content_length"`    // average content size
-	CurrentRps          int64   `json:"current_rps"`           // # reqs/sec
-	CurrentFailPerSec   int64   `json:"current_fail_per_sec"`  // # fails/sec
+	MedianResponseTime    int64   `json:"median_response_time"`  // median response time
+	PercentResponseTime   int64   `json:"percent_response_time"` // custom a percent response time
+	Percent95ResponseTime int64   `json:"p95_response_time"`     // p95 response time
+	AvgResponseTime       float64 `json:"avg_response_time"`     // average response time, round float to 2 decimal places
+	AvgContentLength      int64   `json:"avg_content_length"`    // average content size
+	CurrentRps            int64   `json:"current_rps"`           // # reqs/sec
+	CurrentFailPerSec     int64   `json:"current_fail_per_sec"`  // # fails/sec
 }
 
 type dataOutput struct {
@@ -559,13 +556,14 @@ func deserializeStatsEntry(stat interface{}) (entryOutput *statsEntryOutput, err
 
 	numRequests := entry.NumRequests
 	entryOutput = &statsEntryOutput{
-		statsEntry:          entry,
-		MedianResponseTime:  getMedianResponseTime(numRequests, entry.ResponseTimes),
-		PercentResponseTime: getPercentResponseTime(numRequests, entry.ResponseTimes),
-		AvgResponseTime:     getAvgResponseTime(numRequests, entry.TotalResponseTime),
-		AvgContentLength:    getAvgContentLength(numRequests, entry.TotalContentLength),
-		CurrentRps:          getCurrentRps(numRequests, entry.NumReqsPerSec),
-		CurrentFailPerSec:   getCurrentFailPerSec(entry.NumFailures, entry.NumFailPerSec),
+		statsEntry:            entry,
+		MedianResponseTime:    getMedianResponseTime(numRequests, entry.ResponseTimes),
+		PercentResponseTime:   getPercentResponseTime(numRequests, entry.ResponseTimes, OutputOps.PercentTime),
+		Percent95ResponseTime: getPercentResponseTime(numRequests, entry.ResponseTimes, 95),
+		AvgResponseTime:       getAvgResponseTime(numRequests, entry.TotalResponseTime),
+		AvgContentLength:      getAvgContentLength(numRequests, entry.TotalContentLength),
+		CurrentRps:            getCurrentRps(numRequests, entry.NumReqsPerSec),
+		CurrentFailPerSec:     getCurrentFailPerSec(entry.NumFailures, entry.NumFailPerSec),
 	}
 	return
 }
