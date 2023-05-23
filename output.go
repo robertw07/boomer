@@ -107,7 +107,7 @@ func (o *ConsoleOutput) OnEvent(data map[string]interface{}) {
 
 	table.Append([]string{"Current Data:"})
 	for _, stat := range output.Stats {
-		row := make([]string, 12)
+		row := make([]string, 13)
 		row[0] = stat.Method
 		row[1] = stat.Name
 		row[2] = strconv.FormatInt(stat.NumRequests, 10)
@@ -127,7 +127,7 @@ func (o *ConsoleOutput) OnEvent(data map[string]interface{}) {
 	table.Append([]string{"Summary Data:"})
 
 	for _, stat := range allStats.Stats {
-		row := make([]string, 12)
+		row := make([]string, 13)
 		row[0] = stat.Method
 		row[1] = stat.Name
 		row[2] = strconv.FormatInt(stat.NumRequests, 10)
@@ -476,8 +476,8 @@ type dataOutput struct {
 	Stats          []*statsEntryOutput               `json:"stats"`
 	Errors         map[string]map[string]interface{} `json:"errors"`
 
-	TotalRequestCount int64           `json:"-"`
-	TotalFailedCount  int64           `json:"-"`
+	TotalRequestCount int64           `json:"total_request_count"`
+	TotalFailedCount  int64           `json:"total_failed_count"`
 	NumReqsPerSec     map[int64]int64 `json:"-"`
 }
 type DataOutputJson struct {
