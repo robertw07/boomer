@@ -366,7 +366,10 @@ func (r *localRunner) shutdown() {
 	if r.rateLimitEnabled {
 		r.rateLimiter.Stop()
 	}
-	close(r.shutdownChan)
+	if !<-r.shutdownChan {
+		close(r.shutdownChan)
+	}
+
 }
 
 func (r *localRunner) sendCustomMessage(messageType string, data interface{}) {
