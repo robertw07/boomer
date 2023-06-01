@@ -366,9 +366,7 @@ func (r *localRunner) shutdown() {
 	if r.rateLimitEnabled {
 		r.rateLimiter.Stop()
 	}
-	if !<-r.shutdownChan {
-		close(r.shutdownChan)
-	}
+	//close(r.shutdownChan)
 
 }
 
