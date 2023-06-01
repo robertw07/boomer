@@ -207,37 +207,37 @@ func (r *runner) newSpawnWorkers(spawnCount int, quit chan bool, spawnCompleteFu
 	}
 }
 
-func (r *runner) spawnWorkers2(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
-	pool, _ := ants.NewPool(spawnCount)
-	for {
-		select {
-		case <-quit:
-			return
-		case <-r.shutdownChan:
-			return
-		default:
-			r.numClients = int32(pool.Running())
-			if r.rateLimitEnabled {
-				blocked := r.rateLimiter.Acquire()
-				if !blocked {
-					task := r.getTask()
-					pool.Submit(func() {
-						r.safeRun(task.Fn)
-					})
-				}
-			} else {
-				task := r.getTask()
-				pool.Submit(func() {
-					r.safeRun(task.Fn)
-				})
-			}
-		}
-	}
-
-	if spawnCompleteFunc != nil {
-		spawnCompleteFunc()
-	}
-}
+//func (r *runner) spawnWorkers2(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
+//	pool, _ := ants.NewPool(spawnCount)
+//	for {
+//		select {
+//		case <-quit:
+//			return
+//		case <-r.shutdownChan:
+//			return
+//		default:
+//			r.numClients = int32(pool.Running())
+//			if r.rateLimitEnabled {
+//				blocked := r.rateLimiter.Acquire()
+//				if !blocked {
+//					task := r.getTask()
+//					pool.Submit(func() {
+//						r.safeRun(task.Fn)
+//					})
+//				}
+//			} else {
+//				task := r.getTask()
+//				pool.Submit(func() {
+//					r.safeRun(task.Fn)
+//				})
+//			}
+//		}
+//	}
+//
+//	if spawnCompleteFunc != nil {
+//		spawnCompleteFunc()
+//	}
+//}
 
 // setTasks will set the runner's task list AND the total task weight
 // which is used to get a random task later
@@ -290,9 +290,6 @@ func (r *runner) startSpawning(spawnCount int, spawnRate float64, spawnCompleteF
 	} else {
 		go r.newSpawnWorkers(spawnCount, r.stopChan, spawnCompleteFunc)
 	}
-
-	//go r.spawnWorkers2(spawnCount, r.stopChan, spawnCompleteFunc)
-
 }
 
 func (r *runner) stop() {
@@ -356,6 +353,10 @@ func (r *localRunner) run() {
 	r.startSpawning(r.spawnCount, r.spawnRate, nil)
 
 	wg.Wait()
+}
+
+func (r *localRunner) shutdownWorks() {
+	close(r.shutdownChan)
 }
 
 func (r *localRunner) shutdown() {

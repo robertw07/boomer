@@ -206,6 +206,12 @@ func (b *Boomer) SendCustomMessage(messageType string, data interface{}) {
 	}
 }
 
+func (b *Boomer) ShutdownWorks() {
+	if b.mode == StandaloneMode {
+		b.localRunner.shutdownWorks()
+	}
+}
+
 // Quit will send a quit message to the master.
 func (b *Boomer) Quit() {
 	Events.Publish(EVENT_QUIT)
