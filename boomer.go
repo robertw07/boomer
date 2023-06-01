@@ -206,9 +206,9 @@ func (b *Boomer) SendCustomMessage(messageType string, data interface{}) {
 	}
 }
 
-func (b *Boomer) ShutdownWorks() {
+func (b *Boomer) Stop() {
 	if b.mode == StandaloneMode {
-		b.localRunner.shutdownWorks()
+		b.localRunner.stop()
 	}
 }
 

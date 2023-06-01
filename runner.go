@@ -355,10 +355,6 @@ func (r *localRunner) run() {
 	wg.Wait()
 }
 
-func (r *localRunner) shutdownWorks() {
-	close(r.shutdownChan)
-}
-
 func (r *localRunner) shutdown() {
 	if r.stats != nil {
 		r.stats.close()
@@ -366,8 +362,7 @@ func (r *localRunner) shutdown() {
 	if r.rateLimitEnabled {
 		r.rateLimiter.Stop()
 	}
-	//close(r.shutdownChan)
-
+	close(r.shutdownChan)
 }
 
 func (r *localRunner) sendCustomMessage(messageType string, data interface{}) {
