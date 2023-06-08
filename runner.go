@@ -339,7 +339,7 @@ func (r *localRunner) run() {
 				r.outputOnEevent(data)
 			case <-r.shutdownChan:
 				Events.Publish(EVENT_QUIT)
-				r.stop()
+				//r.stop()
 				wg.Done()
 				r.outputOnStop()
 				return
