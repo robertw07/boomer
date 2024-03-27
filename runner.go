@@ -223,14 +223,11 @@ func (r *runner) newSpawnWorkers(spawnCount int, quit chan bool, spawnCompleteFu
 		case <-r.shutdownChan:
 			return
 		default:
-
-			go func() {
-				pool.Submit(func() {
-					task := r.getTask()
-					r.safeRun(task.Fn)
-				})
-				r.numClients = int32(pool.Running())
-			}()
+			pool.Submit(func() {
+				task := r.getTask()
+				r.safeRun(task.Fn)
+			})
+			r.numClients = int32(pool.Running())
 		}
 		interval := time.Duration(sleepD)*time.Microsecond - (time.Now().Sub(preTime))
 		time.Sleep(interval)
