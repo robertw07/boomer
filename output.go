@@ -211,12 +211,13 @@ func getCurrentRps(numRequests int64, numReqsPerSecond map[int64]int64) (current
 	currentRps = int64(0)
 
 	//fix accuracy issue by robert
-	var count int64
-	if len(numReqsPerSecond) > 2 {
-		count = int64(len(numReqsPerSecond) - 1)
-	} else {
-		count = int64(len(numReqsPerSecond))
-	}
+	//var count int64
+	count := int64(len(numReqsPerSecond))
+	//if len(numReqsPerSecond) > 2 {
+	//	count = int64(len(numReqsPerSecond) - 1)
+	//} else {
+	//	count = int64(len(numReqsPerSecond))
+	//}
 	if count != 0 {
 		currentRps = numRequests / count
 	}

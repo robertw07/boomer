@@ -26,10 +26,10 @@ func foo1() {
 
 func foo2() {
 	start := time.Now()
-	n := rand.Intn(50)
+	n := rand.Intn(200)
 	time.Sleep(time.Millisecond * time.Duration(n))
 	elapsed := time.Since(start)
-
+	fmt.Println(time.Now().String())
 	// Report your test result as a success, if you write it in python, it will looks like this
 	// events.request_success.fire(request_type="http", name="foo", response_time=100, response_length=10)
 	if n > 40 {
