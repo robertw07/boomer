@@ -399,10 +399,11 @@ func buildAllStats(output *dataOutput) {
 				Name: "Total",
 			},
 		}
-	} else {
-		allStats.TotalStats.NumRequests += output.TotalStats.NumRequests
-		allStats.TotalStats.NumFailures += output.TotalStats.NumFailures
 	}
+	//else {
+	allStats.TotalStats.NumRequests += output.TotalStats.NumRequests
+	allStats.TotalStats.NumFailures += output.TotalStats.NumFailures
+	//}
 
 	if allStats.Errors == nil {
 		allStats.Errors = map[string]map[string]interface{}{}

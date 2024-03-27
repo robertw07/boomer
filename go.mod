@@ -9,11 +9,11 @@ require (
 	github.com/myzhan/gomq v0.0.0-20220926014711-4eea0d4a1e75
 	github.com/myzhan/gomq/zmtp v0.0.0-20220926014711-4eea0d4a1e75
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/panjf2000/ants/v2 v2.4.8
+	github.com/panjf2000/ants/v2 v2.9.0
 	github.com/prometheus/client_golang v1.12.2
 	github.com/shirou/gopsutil v3.21.10+incompatible
 	github.com/shirou/gopsutil/v3 v3.22.10
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 	github.com/ugorji/go/codec v1.2.6
 	github.com/zeromq/goczmq v0.0.0-20190906225145-a7546843a315
 	go.uber.org/ratelimit v0.2.0
