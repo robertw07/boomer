@@ -217,6 +217,7 @@ func (r *runner) newSpawnWorkers(spawnCount int, quit chan bool, spawnCompleteFu
 		sleepD = 1000 * 1000 / RateLimiterNum
 		//rlimiter = ratelimit.New(int(RateLimiterNum))
 	}
+	preTime := time.Now()
 	for {
 		select {
 		case <-quit:
@@ -224,7 +225,7 @@ func (r *runner) newSpawnWorkers(spawnCount int, quit chan bool, spawnCompleteFu
 		case <-r.shutdownChan:
 			return
 		default:
-			time.Sleep(time.Duration(sleepD) * time.Microsecond)
+
 			//if rlimiter != nil {
 			//	rlimiter.Take()
 			//}
@@ -235,6 +236,8 @@ func (r *runner) newSpawnWorkers(spawnCount int, quit chan bool, spawnCompleteFu
 				})
 				r.numClients = int32(pool.Running())
 			}()
+			time.Sleep(time.Duration(sleepD-(time.Now().UnixMicro()-preTime.UnixMicro())) * time.Microsecond)
+			preTime = time.Now()
 		}
 	}
 
