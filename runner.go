@@ -1,10 +1,9 @@
 package boomer
 
 import (
+	"context"
 	"fmt"
-	"github.com/panjf2000/ants/v2"
 	"log"
-	"math/rand"
 	"os"
 	"runtime/debug"
 	"strings"
@@ -22,11 +21,10 @@ const (
 )
 
 const (
-	//slaveReportInterval = 10 * time.Second
-	heartbeatInterval = 1 * time.Second
+	heartbeatInterval      = 1 * time.Second
+	masterHeartbeatTimeout = 60 * time.Second
 )
 
-// add by robert for support the feature of custom output interval
 var slaveReportInterval = 10 * time.Second
 
 type runner struct {
@@ -34,6 +32,7 @@ type runner struct {
 
 	tasks           []*Task
 	totalTaskWeight int
+	runTask         []*Task // goroutine execute tasks according to the list
 
 	rateLimiter      RateLimiter
 	rateLimitEnabled bool
@@ -42,18 +41,18 @@ type runner struct {
 	// TODO: we save user_class_count in spawn message and send it back to master without modification, may be a bad idea?
 	userClassesCountFromMaster map[string]int64
 
-	numClients       int32
-	spawnRate        float64
-	isOldSpawnWorker bool
+	numClients int32
+	spawnRate  float64
 
-	// all running workers(goroutines) will select on this channel.
-	// close this channel will stop all running workers.
-	stopChan chan bool
+	// Cancellation method for all running workers(goroutines)
+	cancelFuncs []context.CancelFunc
 
 	// close this channel will stop all goroutines used in runner, including running workers.
 	shutdownChan chan bool
 
 	outputs []Output
+
+	logger *log.Logger
 }
 
 func (r *runner) SetSlaveReportInterval(interval int) {
@@ -62,8 +61,10 @@ func (r *runner) SetSlaveReportInterval(interval int) {
 	}
 }
 
-func (r *runner) SetIsOldSpawnWorker(value bool) {
-	r.isOldSpawnWorker = value
+func (r *runner) setLogger(logger *log.Logger) {
+	if logger != nil {
+		r.logger = logger
+	}
 }
 
 // safeRun runs fn and recovers from unexpected panics.
@@ -135,22 +136,20 @@ func (r *runner) outputOnStop() {
 	wg.Wait()
 }
 
-func (r *runner) spawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
-	log.Println("Spawning", spawnCount, "clients immediately")
-
-	for i := 1; i <= spawnCount; i++ {
+// addWorkers start the goroutines and add it to cancelFuncs
+func (r *runner) addWorkers(gapCount int) {
+	for i := 0; i < gapCount; i++ {
 		select {
-		case <-quit:
-			// quit spawning goroutine
-			return
 		case <-r.shutdownChan:
 			return
 		default:
-			atomic.AddInt32(&r.numClients, 1)
-			go func() {
+			ctx, cancel := context.WithCancel(context.TODO())
+			r.cancelFuncs = append(r.cancelFuncs, cancel)
+			go func(ctx context.Context) {
+				index := 0
 				for {
 					select {
-					case <-quit:
+					case <-ctx.Done():
 						return
 					case <-r.shutdownChan:
 						return
@@ -158,169 +157,104 @@ func (r *runner) spawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc 
 						if r.rateLimitEnabled {
 							blocked := r.rateLimiter.Acquire()
 							if !blocked {
-								task := r.getTask()
+								task := r.getTask(index)
 								r.safeRun(task.Fn)
+								index++
+								if index == r.totalTaskWeight {
+									index = 0
+								}
 							}
 						} else {
-							task := r.getTask()
+							task := r.getTask(index)
 							r.safeRun(task.Fn)
+							index++
+							if index == r.totalTaskWeight {
+								index = 0
+							}
 						}
 					}
 				}
-			}()
+			}(ctx)
 		}
-	}
-
-	if spawnCompleteFunc != nil {
-		spawnCompleteFunc()
 	}
 }
 
-//func (r *runner) newSpawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
-//	//log.Println("Spawning clients dynamically")
-//	defer ants.Release()
-//	pool, _ := ants.NewPool(spawnCount)
-//	var rlimiter ratelimit.Limiter
-//	if RateLimiterNum != 0 {
-//		rlimiter = ratelimit.New(int(RateLimiterNum))
-//	}
-//	for {
-//		select {
-//		case <-quit:
-//			return
-//		case <-r.shutdownChan:
-//			return
-//		default:
-//			if rlimiter != nil {
-//				rlimiter.Take()
-//			}
-//			pool.Submit(func() {
-//				task := r.getTask()
-//				r.safeRun(task.Fn)
-//			})
-//			r.numClients = int32(pool.Running())
-//		}
-//	}
-//
-//	if spawnCompleteFunc != nil {
-//		spawnCompleteFunc()
-//	}
-//}
-
-func (r *runner) newSpawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
-	defer ants.Release()
-	pool, _ := ants.NewPool(spawnCount)
-	var sleepD int64
-	if RateLimiterNum != 0 {
-		sleepD = 1000 * 1000 / RateLimiterNum
+// reduceWorkers Stop the goroutines and remove it from the cancelFuncs
+func (r *runner) reduceWorkers(gapCount int) {
+	if gapCount == 0 {
+		return
 	}
-	preTime := time.Now()
-	for {
-		preTime = time.Now()
-		select {
-		case <-quit:
-			return
-		case <-r.shutdownChan:
-			return
-		default:
-			pool.Submit(func() {
-				task := r.getTask()
-				r.safeRun(task.Fn)
-			})
-			r.numClients = int32(pool.Running())
-		}
-		interval := time.Duration(sleepD)*time.Microsecond - (time.Now().Sub(preTime))
-		time.Sleep(interval)
+	num := len(r.cancelFuncs) - gapCount
+	for _, cancelFunc := range r.cancelFuncs[num:] {
+		cancelFunc()
 	}
 
-	if spawnCompleteFunc != nil {
-		spawnCompleteFunc()
-	}
+	r.cancelFuncs = r.cancelFuncs[:num]
+
 }
 
-//func (r *runner) spawnWorkers2(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
-//	pool, _ := ants.NewPool(spawnCount)
-//	for {
-//		select {
-//		case <-quit:
-//			return
-//		case <-r.shutdownChan:
-//			return
-//		default:
-//			r.numClients = int32(pool.Running())
-//			if r.rateLimitEnabled {
-//				blocked := r.rateLimiter.Acquire()
-//				if !blocked {
-//					task := r.getTask()
-//					pool.Submit(func() {
-//						r.safeRun(task.Fn)
-//					})
-//				}
-//			} else {
-//				task := r.getTask()
-//				pool.Submit(func() {
-//					r.safeRun(task.Fn)
-//				})
-//			}
-//		}
-//	}
-//
-//	if spawnCompleteFunc != nil {
-//		spawnCompleteFunc()
-//	}
-//}
+func (r *runner) spawnWorkers(spawnCount int, spawnCompleteFunc func()) {
+	r.logger.Println("The total number of clients required is ", spawnCount)
+
+	var gapCount int
+	if spawnCount > int(r.numClients) {
+		gapCount = spawnCount - int(r.numClients)
+		r.logger.Printf("The current number of clients is %v, %v clients will be added\n", r.numClients, gapCount)
+		r.addWorkers(gapCount)
+	} else {
+		gapCount = int(r.numClients) - spawnCount
+		r.logger.Printf("The current number of clients is %v, %v clients will be removed\n", r.numClients, gapCount)
+		r.reduceWorkers(gapCount)
+	}
+
+	r.numClients = int32(spawnCount)
+
+	if spawnCompleteFunc != nil {
+		go spawnCompleteFunc() //For faster time
+	}
+}
 
 // setTasks will set the runner's task list AND the total task weight
-// which is used to get a random task later
+// which is used to get a task later
 func (r *runner) setTasks(t []*Task) {
 	r.tasks = t
+	if len(r.tasks) == 1 {
+		r.totalTaskWeight = 1
+		r.runTask = t
+		return
+	}
 
 	weightSum := 0
 	for _, task := range r.tasks {
+		if task.Weight <= 0 { //Ensure that user input values are legal
+			task.Weight = 1
+		}
 		weightSum += task.Weight
 	}
 	r.totalTaskWeight = weightSum
-}
 
-func (r *runner) getTask() *Task {
-	tasksCount := len(r.tasks)
-	if tasksCount == 1 {
-		// Fast path
-		return r.tasks[0]
-	}
-
-	rs := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-	totalWeight := r.totalTaskWeight
-	if totalWeight <= 0 {
-		// If all the tasks have not weights defined, they have the same chance to run
-		randNum := rs.Intn(tasksCount)
-		return r.tasks[randNum]
-	}
-
-	randNum := rs.Intn(totalWeight)
-	runningSum := 0
-	for _, task := range r.tasks {
-		runningSum += task.Weight
-		if runningSum > randNum {
-			return task
+	r.runTask = make([]*Task, r.totalTaskWeight)
+	index := 0
+	for weightSum > 0 { //Assign task order according to weight
+		for _, task := range r.tasks {
+			if task.Weight > 0 {
+				r.runTask[index] = task
+				index++
+				task.Weight--
+				weightSum--
+			}
 		}
 	}
+}
 
-	return nil
+func (r *runner) getTask(index int) *Task {
+	return r.runTask[index]
 }
 
 func (r *runner) startSpawning(spawnCount int, spawnRate float64, spawnCompleteFunc func()) {
 	Events.Publish(EVENT_SPAWN, spawnCount, spawnRate)
 
-	r.stopChan = make(chan bool)
-	r.numClients = 0
-
-	if r.isOldSpawnWorker {
-		go r.spawnWorkers(spawnCount, r.stopChan, spawnCompleteFunc)
-	} else {
-		go r.newSpawnWorkers(spawnCount, r.stopChan, spawnCompleteFunc)
-	}
+	r.spawnWorkers(spawnCount, spawnCompleteFunc)
 }
 
 func (r *runner) stop() {
@@ -328,9 +262,8 @@ func (r *runner) stop() {
 	// user's code can subscribe to this event and do thins like cleaning up
 	Events.Publish(EVENT_STOP)
 
-	// stop previous goroutines without blocking
-	// those goroutines will exit when r.safeRun returns
-	close(r.stopChan)
+	r.reduceWorkers(int(r.numClients)) //Stop all goroutines
+	r.numClients = 0
 }
 
 type localRunner struct {
@@ -341,6 +274,7 @@ type localRunner struct {
 
 func newLocalRunner(tasks []*Task, rateLimiter RateLimiter, spawnCount int, spawnRate float64) (r *localRunner) {
 	r = &localRunner{}
+	r.setLogger(log.Default())
 	r.setTasks(tasks)
 	r.spawnRate = spawnRate
 	r.spawnCount = spawnCount
@@ -370,7 +304,7 @@ func (r *localRunner) run() {
 				r.outputOnEevent(data)
 			case <-r.shutdownChan:
 				Events.Publish(EVENT_QUIT)
-				//r.stop()
+				r.stop()
 				wg.Done()
 				r.outputOnStop()
 				return
@@ -406,16 +340,19 @@ func (r *localRunner) sendCustomMessage(messageType string, data interface{}) {
 type slaveRunner struct {
 	runner
 
-	nodeID                     string
-	masterHost                 string
-	masterPort                 int
-	waitForAck                 sync.WaitGroup
-	lastReceivedSpawnTimestamp int64
-	client                     client
+	nodeID                       string
+	masterHost                   string
+	masterPort                   int
+	waitForAck                   sync.WaitGroup
+	ackReceived                  int32
+	lastReceivedSpawnTimestamp   int64
+	lastMasterHeartbeatTimestamp time.Time
+	client                       client
 }
 
 func newSlaveRunner(masterHost string, masterPort int, tasks []*Task, rateLimiter RateLimiter) (r *slaveRunner) {
 	r = &slaveRunner{}
+	r.setLogger(log.Default())
 	r.masterHost = masterHost
 	r.masterPort = masterPort
 	r.setTasks(tasks)
@@ -456,6 +393,8 @@ func (r *slaveRunner) shutdown() {
 	if r.rateLimitEnabled {
 		r.rateLimiter.Stop()
 	}
+	r.cancelFuncs = nil
+	r.numClients = 0
 	close(r.shutdownChan)
 }
 
@@ -487,7 +426,7 @@ func (r *slaveRunner) onSpawnMessage(msg *genericMessage) {
 	if timeStamp, ok := msg.Data["timestamp"]; ok {
 		if timeStampInt64, ok := castToInt64(timeStamp); ok {
 			if timeStampInt64 <= r.lastReceivedSpawnTimestamp {
-				log.Println("Discard spawn message with older or equal timestamp than timestamp of previous spawn message")
+				r.logger.Println("Discard spawn message with older or equal timestamp than timestamp of previous spawn message")
 				return
 			} else {
 				r.lastReceivedSpawnTimestamp = timeStampInt64
@@ -509,6 +448,11 @@ func (r *slaveRunner) onCustomMessage(msg *CustomMessage) {
 }
 
 func (r *slaveRunner) onAckMessage(msg *genericMessage) {
+	// Maybe we should add a state for waiting?
+	if !atomic.CompareAndSwapInt32(&r.ackReceived, 0, 1) {
+		r.logger.Println("Receive duplicate ack message, ignored")
+		return
+	}
 	r.waitForAck.Done()
 	Events.Publish(EVENT_CONNECTED)
 }
@@ -516,12 +460,14 @@ func (r *slaveRunner) onAckMessage(msg *genericMessage) {
 func (r *slaveRunner) sendClientReadyAndWaitForAck() {
 	r.waitForAck = sync.WaitGroup{}
 	r.waitForAck.Add(1)
+
+	atomic.StoreInt32(&r.ackReceived, 0)
 	// locust allows workers to bypass version check by sending -1 as version
 	r.client.sendChannel() <- newClientReadyMessage("client_ready", -1, r.nodeID)
 
 	go func() {
 		if waitTimeout(&r.waitForAck, 5*time.Second) {
-			log.Println("Timeout waiting for ack message from master, you may use a locust version before 2.10.0 or have a network issue.")
+			r.logger.Println("Timeout waiting for ack message from master, you may use a locust version before 2.10.0 or have a network issue.")
 		}
 	}()
 }
@@ -538,11 +484,17 @@ func (r *slaveRunner) onMessage(msgInterface message) {
 	} else {
 		customMsg, ok = msgInterface.(*CustomMessage)
 		if !ok {
-			log.Println("Receive unknown type of message from master.")
+			r.logger.Println("Receive unknown type of message from master.")
 			return
 		} else {
 			msgType = customMsg.Type
 		}
+	}
+
+	switch msgType {
+	case "heartbeat":
+		r.lastMasterHeartbeatTimestamp = time.Now()
+		return
 	}
 
 	switch r.state {
@@ -565,18 +517,17 @@ func (r *slaveRunner) onMessage(msgInterface message) {
 		switch msgType {
 		case "spawn":
 			r.state = stateSpawning
-			r.stop()
 			r.onSpawnMessage(genericMsg)
 		case "stop":
 			r.stop()
 			r.state = stateStopped
-			log.Println("Recv stop message from master, all the goroutines are stopped")
+			r.logger.Println("Recv stop message from master, all the goroutines are stopped")
 			r.client.sendChannel() <- newGenericMessage("client_stopped", nil, r.nodeID)
 			r.sendClientReadyAndWaitForAck()
 			r.state = stateInit
 		case "quit":
 			r.stop()
-			log.Println("Recv quit message from master, all the goroutines are stopped")
+			r.logger.Println("Recv quit message from master, all the goroutines are stopped")
 			Events.Publish(EVENT_QUIT)
 			r.state = stateInit
 		default:
@@ -622,9 +573,9 @@ func (r *slaveRunner) run() {
 	err := r.client.connect()
 	if err != nil {
 		if strings.Contains(err.Error(), "Socket type DEALER is not compatible with PULL") {
-			log.Println("Newer version of locust changes ZMQ socket to DEALER and ROUTER, you should update your locust version.")
+			r.logger.Println("Newer version of locust changes ZMQ socket to DEALER and ROUTER, you should update your locust version.")
 		} else {
-			log.Printf("Failed to connect to master(%s:%d) with error %v\n", r.masterHost, r.masterPort, err)
+			r.logger.Printf("Failed to connect to master(%s:%d) with error %v\n", r.masterHost, r.masterPort, err)
 		}
 		return
 	}
@@ -667,6 +618,13 @@ func (r *slaveRunner) run() {
 		for {
 			select {
 			case <-ticker.C:
+				// check for master heartbeat timeout
+				if !r.lastMasterHeartbeatTimestamp.IsZero() && time.Now().Sub(r.lastMasterHeartbeatTimestamp) > masterHeartbeatTimeout {
+					r.logger.Printf("Didn't get heartbeat from master in over %vs, shutting down.\n", masterHeartbeatTimeout.Seconds())
+					r.shutdown()
+					return
+				}
+				// send client heartbeat message
 				CPUUsage := GetCurrentCPUUsage()
 				data := map[string]interface{}{
 					"state":             r.state,

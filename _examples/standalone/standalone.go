@@ -175,7 +175,7 @@ func main() {
 	//	RealTimeResultPath: "realTimeResult.json",
 	//	TotalResultPath:    "totalResult.json",
 	//}))
-	limiter := boomer.NewStableRateLimiter(1000, time.Second)
+	limiter := boomer.NewStableRateLimiter(80, time.Second)
 	globalBoomer.SetRateLimiter(limiter)
 	globalBoomer.SetIsOldSpawnWorker(false)
 	globalBoomer.OutputInterval = 3

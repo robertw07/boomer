@@ -138,7 +138,7 @@ func (b *Boomer) Run(tasks ...*Task) {
 	case StandaloneMode:
 		b.localRunner = newLocalRunner(tasks, b.rateLimiter, b.spawnCount, b.spawnRate)
 		b.localRunner.SetSlaveReportInterval(b.OutputInterval)
-		b.localRunner.SetIsOldSpawnWorker(b.isOldSpawnWorker)
+		//b.localRunner.SetIsOldSpawnWorker(b.isOldSpawnWorker)
 		for _, o := range b.outputs {
 			b.localRunner.addOutput(o)
 		}
@@ -147,6 +147,8 @@ func (b *Boomer) Run(tasks ...*Task) {
 		log.Println("Invalid mode, expected boomer.DistributedMode or boomer.StandaloneMode")
 	}
 }
+
+// add by robert for support the feature of custom output interval
 
 // RecordSuccess reports a success.
 func (b *Boomer) RecordSuccess(requestType, name string, responseTime int64, responseLength int64) {
