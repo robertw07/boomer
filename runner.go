@@ -3,6 +3,7 @@ package boomer
 import (
 	"fmt"
 	"github.com/panjf2000/ants/v2"
+	"go.uber.org/ratelimit"
 	"log"
 	"math/rand"
 	"os"
@@ -176,38 +177,38 @@ func (r *runner) spawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc 
 	}
 }
 
-//func (r *runner) newSpawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
-//	//log.Println("Spawning clients dynamically")
-//	defer ants.Release()
-//	pool, _ := ants.NewPool(spawnCount)
-//	var rlimiter ratelimit.Limiter
-//	if RateLimiterNum != 0 {
-//		rlimiter = ratelimit.New(int(RateLimiterNum))
-//	}
-//	for {
-//		select {
-//		case <-quit:
-//			return
-//		case <-r.shutdownChan:
-//			return
-//		default:
-//			if rlimiter != nil {
-//				rlimiter.Take()
-//			}
-//			pool.Submit(func() {
-//				task := r.getTask()
-//				r.safeRun(task.Fn)
-//			})
-//			r.numClients = int32(pool.Running())
-//		}
-//	}
-//
-//	if spawnCompleteFunc != nil {
-//		spawnCompleteFunc()
-//	}
-//}
-
 func (r *runner) newSpawnWorkers(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
+	//log.Println("Spawning clients dynamically")
+	defer ants.Release()
+	pool, _ := ants.NewPool(spawnCount)
+	var rlimiter ratelimit.Limiter
+	if RateLimiterNum != 0 {
+		rlimiter = ratelimit.New(int(RateLimiterNum))
+	}
+	for {
+		select {
+		case <-quit:
+			return
+		case <-r.shutdownChan:
+			return
+		default:
+			if rlimiter != nil {
+				rlimiter.Take()
+			}
+			pool.Submit(func() {
+				task := r.getTask()
+				r.safeRun(task.Fn)
+			})
+			r.numClients = int32(pool.Running())
+		}
+	}
+
+	if spawnCompleteFunc != nil {
+		spawnCompleteFunc()
+	}
+}
+
+func (r *runner) newSpawnWorkers1(spawnCount int, quit chan bool, spawnCompleteFunc func()) {
 	//log.Println("Spawning clients dynamically")
 	defer ants.Release()
 	pool, _ := ants.NewPool(spawnCount)
@@ -225,7 +226,6 @@ func (r *runner) newSpawnWorkers(spawnCount int, quit chan bool, spawnCompleteFu
 		case <-r.shutdownChan:
 			return
 		default:
-
 			//if rlimiter != nil {
 			//	rlimiter.Take()
 			//}
@@ -236,7 +236,7 @@ func (r *runner) newSpawnWorkers(spawnCount int, quit chan bool, spawnCompleteFu
 				})
 				r.numClients = int32(pool.Running())
 			}()
-			time.Sleep(time.Duration(sleepD-(time.Now().UnixMicro()-preTime.UnixMicro())) * time.Microsecond)
+			time.Sleep(time.Duration(sleepD)*time.Microsecond - (time.Now().Sub(preTime)))
 			preTime = time.Now()
 		}
 	}
