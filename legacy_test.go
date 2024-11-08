@@ -1,6 +1,8 @@
 package boomer
 
 import (
+	"log"
+	"runtime/debug"
 	"testing"
 )
 
@@ -16,6 +18,7 @@ func TestConvertResponseTime(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
 			t.Error("It should panic")
+			log.Println("stacktrace from panic: \n" + string(debug.Stack()))
 		}
 	}()
 	// It should panic

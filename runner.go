@@ -1,12 +1,10 @@
 package boomer
 
 import (
-	"fmt"
 	"github.com/panjf2000/ants/v2"
 	"go.uber.org/ratelimit"
 	"log"
 	"math/rand"
-	"os"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -74,11 +72,8 @@ func (r *runner) safeRun(fn func()) {
 		// don't panic
 		err := recover()
 		if err != nil {
-			stackTrace := debug.Stack()
-			errMsg := fmt.Sprintf("%v", err)
-			os.Stderr.Write([]byte(errMsg))
-			os.Stderr.Write([]byte("\n"))
-			os.Stderr.Write(stackTrace)
+			log.Println("panic err:", err)
+			log.Println("stacktrace from panic: \n" + string(debug.Stack()))
 		}
 	}()
 	fn()

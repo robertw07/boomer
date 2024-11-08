@@ -1,3 +1,4 @@
+//go:build !goczmq
 // +build !goczmq
 
 package boomer
@@ -122,7 +123,7 @@ func (s *testServer) sendMessage(msg message) {
 		err := recover()
 		if err != nil {
 			log.Printf("%v\n", err)
-			debug.PrintStack()
+			log.Println("stacktrace from panic: \n" + string(debug.Stack()))
 		}
 	}()
 	serializedMessage, err := msg.serialize()
